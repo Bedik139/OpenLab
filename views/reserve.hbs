@@ -1,0 +1,100 @@
+{{!-- Reserve a Seat page --}}
+<div class="page-header">
+  <h1>{{#if editReservation}}Edit Reservation{{else}}Reserve a Seat{{/if}}</h1>
+  <p>{{#if editReservation}}Update your reservation details{{else}}Select your preferred seat and time slot{{/if}}</p>
+</div>
+
+<div class="reserve-layout">
+  {{!-- Left Column: Seat Selection --}}
+  <div class="seat-selection-panel">
+    <div class="panel-card">
+      <div class="panel-header">
+        <h3>{{lab.code}} - {{lab.building}}</h3>
+        <span class="availability-badge">{{lab.available}} seats available</span>
+      </div>
+
+      {{!-- Time Selection --}}
+      <div class="time-selection">
+        <label>Select Date & Time</label>
+        <div class="time-row">
+          <input type="date" id="reserveDate"
+                 value="{{#if editReservation}}{{editReservation.dateStr}}{{else}}{{today}}{{/if}}"
+                 min="{{today}}" max="{{maxDate}}">
+          <select id="timeSlot">
+            {{#each timeSlots}}
+            <option value="{{this.value}}"{{#if this.selected}} selected{{/if}}>{{this.label}}</option>
+            {{/each}}
+          </select>
+        </div>
+      </div>
+
+      {{!-- Seat Map --}}
+      <div class="seat-map-container">
+        <div class="instructor-desk"><span>Instructor's Desk</span></div>
+        <div class="seat-grid" data-lab="{{lab.code}}" data-cols="{{lab.cols}}">
+          {{#each seats}}
+          <div class="seat {{this.status}}" data-seat="{{this.id}}" title="{{this.tooltip}}">{{this.id}}</div>
+          {{#if this.gapAfter}}<div class="seat-gap"></div>{{/if}}
+          {{/each}}
+        </div>
+
+        {{!-- Legend --}}
+        <div class="seat-legend">
+          <div class="legend-item"><span class="legend-seat available"></span><span>Available</span></div>
+          <div class="legend-item"><span class="legend-seat occupied"></span><span>Occupied</span></div>
+          <div class="legend-item"><span class="legend-seat reserved"></span><span>Reserved</span></div>
+          <div class="legend-item"><span class="legend-seat selected"></span><span>Selected</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {{!-- Right Column: Booking Summary --}}
+  <div class="booking-summary-panel">
+    <div class="panel-card summary-card">
+      <h3>{{#if editReservation}}Edit Summary{{else}}Booking Summary{{/if}}</h3>
+      <div class="summary-details">
+        <div class="summary-item"><span class="label">Lab</span><span class="value">{{lab.code}}</span></div>
+        <div class="summary-item"><span class="label">Building</span><span class="value">{{lab.building}}</span></div>
+        <div class="summary-item"><span class="label">Date</span><span class="value" id="summaryDate">{{summaryDate}}</span></div>
+        <div class="summary-item"><span class="label">Time Slot</span><span class="value" id="summaryTime">{{summaryTime}}</span></div>
+        <div class="summary-item"><span class="label">Selected Seat</span><span class="value" id="summarySeat">{{#if editReservation}}{{editReservation.seat}}{{else}}-{{/if}}</span></div>
+      </div>
+      <div class="divider"></div>
+      <div class="rules-section">
+        <h4>Reservation Rules</h4>
+        <ul>
+          <li>Each slot is 30 minutes</li>
+          <li>Book up to 7 days in advance</li>
+          <li>Arrive within 10 minutes or forfeit</li>
+          <li>Maximum 2 active reservations</li>
+        </ul>
+      </div>
+      <div class="anon">
+        <input type="checkbox" id="anonymousToggle"{{#if editReservation}}{{#if editReservation.anonymous}} checked{{/if}}{{/if}}>
+        <span class="reserve-text">Reserve anonymously</span>
+      </div>
+      <button class="confirm-btn" id="confirmBtn" disabled
+              data-lab="{{lab.code}}"
+              data-edit-id="{{#if editReservation}}{{editReservation._id}}{{/if}}">
+        Select a Seat to Continue
+      </button>
+      <a href="/cmpslots" class="back-link">Back to Lab Selection</a>
+    </div>
+
+    {{!-- User Info Card --}}
+    {{#if user}}
+    <div class="panel-card user-card">
+      <h4>Reserving as</h4>
+      <div class="user-info">
+        <div class="user-avatar">{{getInitials user.firstName user.lastName}}</div>
+        <div class="user-details">
+          <span class="user-name">{{user.firstName}} {{user.lastName}}</span>
+          <span class="user-id">ID: {{user.studentId}}</span>
+          <span class="user-college">{{user.college}}</span>
+        </div>
+      </div>
+    </div>
+    {{/if}}
+  </div>
+</div>

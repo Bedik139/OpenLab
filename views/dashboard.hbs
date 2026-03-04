@@ -1,0 +1,134 @@
+{{!-- Dashboard page --}}
+<div class="welcome-header">
+  <div class="welcome-text">
+    {{#if (eq user.accountType "technician")}}
+      <h1>Technician Dashboard</h1>
+      <p>Manage lab reservations and walk-in students</p>
+    {{else}}
+      <h1>Welcome back, {{user.firstName}}!</h1>
+      <p>Here's an overview of your lab reservations</p>
+    {{/if}}
+  </div>
+  <a href="/cmpslots" class="new-reservation-btn">+ New Reservation</a>
+  <a href="/" class="signout-btn" id="signoutBtn">Sign-out</a>
+</div>
+
+{{!-- Stats Grid --}}
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-icon upcoming"></div>
+    <div class="stat-content">
+      <span class="stat-number">{{stats.upcomingCount}}</span>
+      <span class="stat-label">{{#if (eq user.accountType "technician")}}All Upcoming{{else}}Upcoming Reservations{{/if}}</span>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon completed"></div>
+    <div class="stat-content">
+      <span class="stat-number">{{stats.completedCount}}</span>
+      <span class="stat-label">Completed Sessions</span>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon hours"></div>
+    <div class="stat-content">
+      <span class="stat-number">{{stats.totalHours}}</span>
+      <span class="stat-label">Hours This Month</span>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon streak"></div>
+    <div class="stat-content">
+      <span class="stat-number">{{stats.streak}}</span>
+      <span class="stat-label">Day Streak</span>
+    </div>
+  </div>
+</div>
+
+{{!-- Dashboard Grid --}}
+<div class="dashboard-grid">
+  {{!-- Upcoming Reservations Card --}}
+  <div class="dashboard-card upcoming-reservations">
+    <div class="card-header">
+      <h3>{{#if (eq user.accountType "technician")}}All Upcoming Reservations{{else}}Upcoming Reservations{{/if}}</h3>
+      <a href="/reservations" class="view-all">View All</a>
+    </div>
+    <div class="card-content">
+      {{#if upcoming.length}}
+        {{#each upcoming}}
+        <div class="reservation-item">
+          <div class="reservation-date">
+            <span class="day">{{parseDateDay this.date}}</span>
+            <span class="month">{{parseDateMonth this.date}}</span>
+          </div>
+          <div class="reservation-details">
+            <h4>{{this.lab}} - Seat {{this.seat}}</h4>
+            <p>{{this.building}}</p>
+            {{#if ../isTechnician}}
+              {{#if this.userEmail}}
+              <p style="font-size:0.85em;color:#999;">{{this.userEmail}}</p>
+              {{/if}}
+            {{/if}}
+            <span class="time">{{this.timeSlot}}</span>
+          </div>
+          <div class="reservation-status upcoming"><span>Upcoming</span></div>
+        </div>
+        {{/each}}
+      {{else}}
+        <div class="empty-state">
+          <p>No upcoming reservations</p>
+          <a href="/cmpslots">Book a slot now</a>
+        </div>
+      {{/if}}
+    </div>
+  </div>
+
+  {{!-- Quick Actions Card --}}
+  <div class="dashboard-card quick-actions">
+    <div class="card-header"><h3>Quick Actions</h3></div>
+    <div class="card-content">
+      <div class="action-grid">
+        <a href="/cmpslots" class="action-item"><div class="action-icon reserve"></div><span>Reserve a Seat</span></a>
+        <a href="/reservations" class="action-item"><div class="action-icon manage"></div><span>Manage Bookings</span></a>
+        {{#if (eq user.accountType "technician")}}
+        <a href="/walkin" class="action-item"><div class="action-icon manage"></div><span>Walk-In</span></a>
+        {{/if}}
+        <a href="/profile" class="action-item"><div class="action-icon profile"></div><span>Edit Profile</span></a>
+        <a href="/users" class="action-item"><div class="action-icon search"></div><span>Find Users</span></a>
+      </div>
+    </div>
+  </div>
+
+  {{!-- Recent Activity Card --}}
+  <div class="dashboard-card recent-activity">
+    <div class="card-header"><h3>Recent Activity</h3></div>
+    <div class="card-content">
+      <div class="activity-list">
+        {{#each activities}}
+        <div class="activity-item">
+          <div class="activity-indicator {{this.type}}"></div>
+          <div class="activity-details">
+            <p>{{{this.text}}}</p>
+            <span class="activity-time">{{this.time}}</span>
+          </div>
+        </div>
+        {{/each}}
+      </div>
+    </div>
+  </div>
+
+  {{!-- Favorite Labs Card --}}
+  <div class="dashboard-card favorite-labs">
+    <div class="card-header"><h3>Frequently Used Labs</h3></div>
+    <div class="card-content">
+      <div class="lab-list">
+        {{#each favoriteLabs}}
+        <a href="/reserve?lab={{this.code}}" class="lab-item">
+          <div class="lab-info"><h4>{{this.code}}</h4><p>{{this.building}}</p></div>
+          <div class="lab-usage"><span class="usage-count">{{this.visits}} visits</span></div>
+        </a>
+        {{/each}}
+      </div>
+    </div>
+  </div>
+</div>

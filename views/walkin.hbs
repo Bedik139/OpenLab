@@ -1,0 +1,76 @@
+{{!-- Walk-In Reservation page (technician only) --}}
+<div class="page-header">
+  <h1>Walk-In Reservation</h1>
+  <p>Lab technicians: Reserve a seat for a walk-in student</p>
+</div>
+
+<div class="reserve-layout">
+  {{!-- Left Column: Walk-In Form --}}
+  <div class="seat-selection-panel">
+    <div class="panel-card">
+      <div class="panel-header"><h3>Walk-In Student Details</h3></div>
+      <form class="walkin-form">
+        <div class="time-selection">
+          <label for="walkinStudentId">Student ID</label>
+          <div class="time-row">
+            <input type="text" id="walkinStudentId" placeholder="Enter 8-digit student ID" pattern="[0-9]{8}" required>
+          </div>
+        </div>
+        <div class="time-selection">
+          <label for="walkinLab">Select Lab</label>
+          <div class="time-row">
+            <select id="walkinLab" required>
+              <option value="" disabled selected>Choose a lab</option>
+              {{#each labs}}
+              <option value="{{this.code}}">{{this.code}} - {{this.building}}</option>
+              {{/each}}
+            </select>
+          </div>
+        </div>
+        <div class="time-selection">
+          <label for="walkinSeat">Seat Number</label>
+          <div class="time-row">
+            <input type="text" id="walkinSeat" placeholder="e.g., A1, B5, C10" required>
+          </div>
+        </div>
+        <div class="time-selection">
+          <label>Date & Time Slot</label>
+          <div class="time-row">
+            <input type="date" id="walkinDate" value="{{today}}">
+            <select id="walkinTime">
+              {{#each timeSlots}}
+              <option value="{{this.value}}"{{#if (eq this.value "09:00")}} selected{{/if}}>{{this.label}}</option>
+              {{/each}}
+            </select>
+          </div>
+        </div>
+        <button type="submit" class="confirm-btn">Reserve for Student</button>
+      </form>
+    </div>
+  </div>
+
+  {{!-- Right Column: Current Walk-In Reservations --}}
+  <div class="booking-summary-panel">
+    <div class="panel-card summary-card">
+      <h3>Current Walk-In Reservations</h3>
+      <div class="summary-item"><p>Remove no-show students or manage walk-in reservations</p></div>
+      <div class="summary-details">
+        {{#if walkinReservations.length}}
+          {{#each walkinReservations}}
+          <div class="walkin-reservation-item" data-reservation-id="{{this._id}}">
+            <div class="summary-item">
+              <span class="label">{{this.lab}} - Seat {{this.seat}}</span>
+              <span class="value">{{this.timeSlot}} - {{this.studentName}} ({{this.studentId}})</span>
+            </div>
+            <button class="remove-btn">Remove No-Show</button>
+          </div>
+          {{#unless @last}}<div class="divider"></div>{{/unless}}
+          {{/each}}
+        {{else}}
+          <div class="summary-item" style="text-align:center;color:#666;"><p>No current walk-in reservations</p></div>
+        {{/if}}
+      </div>
+      <a href="/dashboard" class="back-link">Back to Dashboard</a>
+    </div>
+  </div>
+</div>

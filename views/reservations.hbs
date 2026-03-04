@@ -1,0 +1,62 @@
+{{!-- Reservations list page --}}
+<div class="page-header">
+  <div class="header-content">
+    <h1>{{#if isTechnician}}All Reservations{{else}}My Reservations{{/if}}</h1>
+    <p>{{#if isTechnician}}View and manage all lab reservations{{else}}View and manage your lab reservations{{/if}}</p>
+  </div>
+</div>
+
+{{!-- Filter Tabs --}}
+<div class="filter-tabs">
+  <button class="tab-btn active" data-filter="all">All</button>
+  <button class="tab-btn" data-filter="upcoming">Upcoming</button>
+  <button class="tab-btn" data-filter="completed">Completed</button>
+  <button class="tab-btn" data-filter="cancelled">Cancelled</button>
+</div>
+
+{{!-- Reservations List --}}
+<div class="reservations-list">
+  {{#each reservations}}
+  <div class="reservation-card {{this.status}}" data-status="{{this.status}}" data-id="{{this._id}}">
+    <div class="card-date">
+      <span class="day">{{parseDateDay this.date}}</span>
+      <span class="month">{{parseDateMonth this.date}}</span>
+      <span class="year">{{parseDateYear this.date}}</span>
+    </div>
+    <div class="card-content">
+      <div class="reservation-main">
+        <h3>{{this.lab}} - Seat {{this.seat}}</h3>
+        <p class="location">{{this.building}}</p>
+        <div class="time-slot"><span class="time">{{this.timeSlot}}</span></div>
+      </div>
+      <div class="reservation-meta">
+        <span class="status-badge {{this.status}}">{{capitalize this.status}}</span>
+        {{#if this.isWalkIn}}
+        <span class="status-badge" style="background:#17a2b8;margin-left:4px;">Walk-In</span>
+        {{/if}}
+        <span class="booked-date">{{#if (eq this.status "cancelled")}}Cancelled on{{else}}Booked on{{/if}} {{formatDate this.createdAt}}</span>
+        {{#if ../isTechnician}}
+          {{#if this.userEmail}}
+          <span class="booked-date" style="display:block;margin-top:4px;">User: {{this.userEmail}}</span>
+          {{/if}}
+        {{/if}}
+      </div>
+    </div>
+    <div class="card-actions">
+      {{#if (eq this.status "upcoming")}}
+        <button class="action-btn edit">Edit</button>
+        <button class="action-btn cancel">Cancel</button>
+      {{else}}
+        <button class="action-btn rebook">Book Again</button>
+      {{/if}}
+    </div>
+  </div>
+  {{/each}}
+</div>
+
+{{!-- Pagination --}}
+<div class="pagination">
+  <button class="page-btn" disabled>Previous</button>
+  <span class="page-info">Page 1 of 1</span>
+  <button class="page-btn">Next</button>
+</div>

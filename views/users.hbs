@@ -1,0 +1,62 @@
+{{!-- Find Users page --}}
+<div class="page-header">
+  <h1>Find Users</h1>
+  <p>Search and connect with other OpenLab users</p>
+</div>
+
+{{!-- Search Section --}}
+<div class="search-section">
+  <div class="search-card">
+    <div class="search-row">
+      <div class="search-input-group">
+        <input type="text" id="userSearch" placeholder="Search by name or student ID...">
+      </div>
+      <div class="filter-group">
+        <select id="collegeFilter">
+          <option value="">All Colleges</option>
+          <option value="CCS">College of Computer Studies</option>
+          <option value="CLA">College of Liberal Arts</option>
+          <option value="COB">College of Business</option>
+          <option value="COE">College of Engineering</option>
+          <option value="COS">College of Science</option>
+          <option value="GCOE">Gokongwei College of Engineering</option>
+          <option value="SOE">School of Economics</option>
+          <option value="BAGCED">Br. Andrew Gonzalez College of Education</option>
+        </select>
+      </div>
+      <button class="search-btn">Search</button>
+    </div>
+  </div>
+</div>
+
+{{!-- Users Grid --}}
+<div class="users-grid">
+  {{#each users}}
+  <div class="user-card" data-college="{{this.college}}">
+    <div class="user-avatar{{#if this.avatarClass}} {{this.avatarClass}}{{/if}}">
+      <span>{{getInitials this.firstName this.lastName}}</span>
+    </div>
+    <div class="user-info">
+      <h3>{{this.firstName}} {{this.lastName}}</h3>
+      <p class="user-id">ID: {{this.studentId}}</p>
+      <span class="college-badge {{lowercase this.college}}">{{this.college}}</span>
+    </div>
+    <div class="user-stats">
+      <div class="stat">
+        <span class="value">{{this.totalSessions}}</span>
+        <span class="label">Sessions</span>
+      </div>
+    </div>
+    <a href="/profile/{{this._id}}" class="view-profile-btn">View Profile</a>
+  </div>
+  {{/each}}
+</div>
+
+{{!-- Pagination --}}
+<div class="pagination">
+  <button class="page-btn" disabled>Previous</button>
+  <div class="page-numbers">
+    <button class="page-num active">1</button>
+  </div>
+  <button class="page-btn">Next</button>
+</div>

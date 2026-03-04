@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+  <head>
+    {{> head}}
+    <title>{{title}}</title>
+  </head>
+  <body>
+    <div class="site-wrapper">
+      {{> navbar}}
+      <div class="landing-banner landing-banner--auth" id="bg-img">
+        <div class="banner-content">
+          {{{body}}}
+        </div>
+      </div>
+      {{#if showFeatures}}
+      <div class="features">
+        <div class="features-grid">
+          {{#each features}}
+          <article class="feature-card">
+            <h3>{{this.title}}</h3>
+            <p>{{this.desc}}</p>
+          </article>
+          {{/each}}
+        </div>
+      </div>
+      {{/if}}
+    </div>
+  </body>
+</html>

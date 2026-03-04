@@ -1,0 +1,23 @@
+<nav class="topnav">
+  <div class="nav-container">
+    <a href="/" class="logo">OpenLab</a>
+    <div class="nav-links">
+      <a href="/"{{#if (eq activePage "index")}} class="active"{{/if}}>Home</a>
+      <a href="/cmpslots"{{#if (eq activePage "cmpslots")}} class="active"{{/if}}>Available Slots</a>
+      <a href="/dashboard"{{#if (eq activePage "dashboard")}} class="active"{{/if}}>Dashboard</a>
+      <a href="/reservations"{{#if (eq activePage "reservations")}} class="active"{{/if}}>My Reservations</a>
+      {{#if user}}
+        {{#if (eq user.accountType "technician")}}
+          <a href="/walkin"{{#if (eq activePage "walkin")}} class="active"{{/if}}>Walk-In</a>
+        {{/if}}
+        <a href="/profile"{{#if (eq activePage "profile")}} class="active"{{/if}}>Profile</a>
+        <a href="/users"{{#if (eq activePage "users")}} class="active"{{/if}}>Find Users</a>
+      {{else}}
+        <a href="/login"{{#if (eq activePage "login")}} class="active"{{/if}}>Login</a>
+      {{/if}}
+      <div class="search-bar">
+        <input type="text" placeholder="Search...">
+      </div>
+    </div>
+  </div>
+</nav>

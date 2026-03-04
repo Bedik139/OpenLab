@@ -1,0 +1,76 @@
+{{!-- Computer Lab Availability page --}}
+<div class="page-header">
+  <h1>Computer Lab Availability</h1>
+  <p>Select a lab to view available slots and make a reservation</p>
+</div>
+
+{{!-- Filter Section --}}
+<div class="filter-section">
+  <div class="filter-card">
+    <div class="filter-row">
+      <div class="filter-group">
+        <label for="dateFilter">Date</label>
+        <input type="date" id="dateFilter" name="dateFilter">
+      </div>
+      <div class="filter-group">
+        <label for="timeFilter">Time Slot</label>
+        <select id="timeFilter" name="timeFilter">
+          <option value="">All Time Slots</option>
+          {{#each timeSlots}}
+          <option value="{{this.value}}">{{this.label}}</option>
+          {{/each}}
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="buildingFilter">Building</label>
+        <select id="buildingFilter" name="buildingFilter">
+          <option value="">All Buildings</option>
+          <option value="andrew">Andrew Building</option>
+          <option value="lasalle">La Salle Hall</option>
+          <option value="gokongwei">Gokongwei Building</option>
+        </select>
+      </div>
+      <button class="filter-btn">Apply Filters</button>
+    </div>
+  </div>
+</div>
+
+{{!-- Lab Cards Grid --}}
+<div class="labs-grid">
+  {{#each labs}}
+  <article class="lab-card" data-lab="{{this.code}}">
+    <div class="lab-header">
+      <h3>{{this.code}}</h3>
+      <span class="building-tag">{{this.building}}</span>
+    </div>
+    <div class="lab-stats">
+      <div class="stat">
+        <span class="stat-number available">{{this.available}}</span>
+        <span class="stat-label">Available</span>
+      </div>
+      <div class="stat">
+        <span class="stat-number occupied">{{this.occupied}}</span>
+        <span class="stat-label">Occupied</span>
+      </div>
+      <div class="stat">
+        <span class="stat-number total">{{this.totalSeats}}</span>
+        <span class="stat-label">Total</span>
+      </div>
+    </div>
+    <div class="lab-info"><p><strong>Hours:</strong> {{this.hours}}</p></div>
+    <a href="/reserve?lab={{this.code}}" class="reserve-btn">View Seats & Reserve</a>
+  </article>
+  {{/each}}
+</div>
+
+{{!-- Legend --}}
+<div class="legend-section">
+  <div class="legend-card">
+    <h4>Legend</h4>
+    <div class="legend-items">
+      <div class="legend-item"><span class="legend-color available"></span><span>Available - Open for reservation</span></div>
+      <div class="legend-item"><span class="legend-color occupied"></span><span>Occupied - Currently in use</span></div>
+      <div class="legend-item"><span class="legend-color reserved"></span><span>Reserved - Booked for later</span></div>
+    </div>
+  </div>
+</div>

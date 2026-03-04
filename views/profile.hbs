@@ -1,0 +1,147 @@
+{{!-- Profile page --}}
+<div class="profile-header">
+  <div class="avatar-section">
+    <div class="avatar">
+      {{#if user.avatarUrl}}
+        <img src="{{user.avatarUrl}}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">
+      {{else}}
+        <span>{{getInitials user.firstName user.lastName}}</span>
+      {{/if}}
+    </div>
+    <button class="change-avatar-btn">Change Photo</button>
+  </div>
+  <div class="header-info">
+    <h1>{{user.firstName}} {{user.lastName}}</h1>
+    <p class="email">{{user.email}}</p>
+    <div class="badges">
+      <span class="badge student">{{#if (eq user.accountType "technician")}}Technician{{else}}Student{{/if}}</span>
+      <span class="badge college">{{user.college}}</span>
+      <span class="badge active">Active</span>
+    </div>
+  </div>
+</div>
+
+<div class="profile-grid">
+  {{!-- Personal Information Card --}}
+  <div class="profile-card">
+    <div class="card-header">
+      <h3>Personal Information</h3>
+      <button class="edit-btn" id="editPersonalBtn">Edit</button>
+    </div>
+    <form class="profile-form" id="personalForm">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="firstName">First Name</label>
+          <input type="text" id="firstName" value="{{user.firstName}}" disabled>
+        </div>
+        <div class="form-group">
+          <label for="lastName">Last Name</label>
+          <input type="text" id="lastName" value="{{user.lastName}}" disabled>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="studentId">Student ID</label>
+        <input type="text" id="studentId" value="{{user.studentId}}" disabled>
+      </div>
+      <div class="form-group">
+        <label for="email">DLSU Email</label>
+        <input type="email" id="email" value="{{user.email}}" disabled>
+      </div>
+      <div class="form-group">
+        <label for="college">College</label>
+        <select id="college" disabled>
+          <option value="CCS"{{#if (eq user.college "CCS")}} selected{{/if}}>College of Computer Studies</option>
+          <option value="CLA"{{#if (eq user.college "CLA")}} selected{{/if}}>College of Liberal Arts</option>
+          <option value="COB"{{#if (eq user.college "COB")}} selected{{/if}}>College of Business</option>
+          <option value="COE"{{#if (eq user.college "COE")}} selected{{/if}}>College of Engineering</option>
+          <option value="COS"{{#if (eq user.college "COS")}} selected{{/if}}>College of Science</option>
+          <option value="GCOE"{{#if (eq user.college "GCOE")}} selected{{/if}}>Gokongwei College of Engineering</option>
+          <option value="SOE"{{#if (eq user.college "SOE")}} selected{{/if}}>School of Economics</option>
+          <option value="BAGCED"{{#if (eq user.college "BAGCED")}} selected{{/if}}>Br. Andrew Gonzalez College of Education</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="bio">Description</label>
+        <input type="text" id="bio" placeholder="Tell us about yourself..." value="{{user.bio}}" disabled>
+      </div>
+      <div class="form-actions hidden" id="personalActions">
+        <button type="button" class="cancel-btn">Cancel</button>
+        <button type="submit" class="save-btn">Save Changes</button>
+      </div>
+    </form>
+  </div>
+
+  {{!-- Account Settings Card --}}
+  <div class="profile-card">
+    <div class="card-header"><h3>Account Settings</h3></div>
+    <div class="settings-list">
+      <div class="setting-item">
+        <div class="setting-info">
+          <h4>Change Password</h4>
+          <p>Update your account password</p>
+        </div>
+        <button class="setting-btn">Change</button>
+      </div>
+      <div class="setting-item">
+        <div class="setting-info">
+          <h4>Email Notifications</h4>
+          <p>Receive reservation reminders</p>
+        </div>
+        <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+      </div>
+    </div>
+  </div>
+
+  {{!-- Statistics Card --}}
+  <div class="profile-card stats-card">
+    <div class="card-header"><h3>Your Statistics</h3></div>
+    <div class="stats-grid">
+      <div class="stat-item"><span class="stat-value">{{stats.totalRes}}</span><span class="stat-label">Total Reservations</span></div>
+      <div class="stat-item"><span class="stat-value">{{stats.completed}}</span><span class="stat-label">Completed</span></div>
+      <div class="stat-item"><span class="stat-value">{{stats.cancelled}}</span><span class="stat-label">Cancelled</span></div>
+      <div class="stat-item"><span class="stat-value">{{stats.noShows}}</span><span class="stat-label">No-shows</span></div>
+      <div class="stat-item"><span class="stat-value">{{stats.hoursUsed}}</span><span class="stat-label">Hours Used</span></div>
+      <div class="stat-item"><span class="stat-value">{{stats.attendanceRate}}%</span><span class="stat-label">Attendance Rate</span></div>
+    </div>
+    <div class="member-since"><p>Member since <strong>{{stats.memberSince}}</strong></p></div>
+  </div>
+
+  {{!-- Current Reservations Card --}}
+  <div class="profile-card">
+    <div class="card-header">
+      <h3>Current Reservations</h3>
+      <a href="/reservations" class="view-all">View All</a>
+    </div>
+    <div class="settings-list">
+      {{#if upcoming.length}}
+        {{#each upcoming}}
+        <div class="setting-item">
+          <div class="setting-info">
+            <h4>{{this.lab}} - Seat {{this.seat}}</h4>
+            <p>{{formatDate this.date}} | {{this.timeSlot}}</p>
+          </div>
+          <span class="status-badge upcoming">Upcoming</span>
+        </div>
+        {{/each}}
+      {{else}}
+        <div class="setting-item">
+          <div class="setting-info"><p>No upcoming reservations</p></div>
+        </div>
+      {{/if}}
+    </div>
+  </div>
+
+  {{!-- Danger Zone --}}
+  <div class="profile-card danger-card">
+    <div class="card-header"><h3>Danger Zone</h3></div>
+    <div class="danger-content">
+      <div class="danger-item">
+        <div class="danger-info">
+          <h4>Delete Account</h4>
+          <p>Permanently delete your account and all data. This action cannot be undone.</p>
+        </div>
+        <button class="danger-btn">Delete Account</button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -215,5 +215,304 @@ run localStorage.clear() in the browser console to reset, then refresh.
 
 
 ================================================================================
-END OF REPORT
+10. BACKEND DISTRIBUTION & CONTRIBUTIONS
 ================================================================================
+
+-- Person 1 — Benedict
+   JSON and Fetch | Handlebars | Cookies and Sessions
+
+-- Person 2 — Ivan
+   Node.js | Express | REST
+
+-- Person 3 — Chrisander
+   MongoDB | Mongoose | Password Hashing
+
+
+================================================================================
+11. BENEDICT'S BACKEND CONTRIBUTIONS
+================================================================================
+
+A. JSON AND FETCH
+-----------------
+Replaced all localStorage reads/writes in the frontend with fetch() calls
+to the backend REST API. The frontend no longer stores or reads data from
+localStorage directly — all data flows through HTTP requests to the
+Node.js server.
+
+Key changes to js/app.js:
+  - authenticateUser() now sends POST /api/login with JSON body
+    {email, password} and receives a session cookie on success.
+  - registerAccount() now sends POST /api/register with JSON body
+    containing all registration fields.
+  - getReservations() now sends GET /api/reservations and parses
+    the JSON response to populate the reservations page.
+  - saveReservation() now sends POST /api/reservations with the
+    reservation object as JSON.
+  - cancelReservation() sends DELETE /api/reservations/:id.
+  - editReservation() sends PUT /api/reservations/:id with updated fields.
+  - getAllReservations() (technician) sends GET /api/reservations/all.
+  - updateProfile() sends PUT /api/profile with updated user fields.
+  - changePassword() sends PUT /api/profile/password with
+    {currentPassword, newPassword}.
+  - deleteAccount() sends DELETE /api/profile.
+  - Walk-in endpoints: POST /api/walkin, GET /api/walkin,
+    DELETE /api/walkin/:id.
+  - All fetch calls include { credentials: 'include' } to send session
+    cookies with every request.
+  - Error responses from the server (4xx/5xx) are caught and displayed
+    to the user via the existing alert/toast UI.
+
+B. HANDLEBARS
+-------------
+Converted all page views from jQuery DOM manipulation to server-side
+Handlebars templates. Each page builder function in app.js was replaced
+by a corresponding .hbs file rendered by the Express server.
+
+Template files created (views/):
+  views/
+    layouts/
+      main.hbs              Main layout with <head>, navbar partial, {{{body}}}
+    partials/
+      navbar.hbs            Dynamic navbar (role-aware links)
+      seatmap.hbs           Reusable seat grid partial
+      reservation-card.hbs  Single reservation card partial
+    index.hbs               Landing page
+    login.hbs               Login form
+    register.hbs            Registration form
+    adminsignup.hbs         Technician login
+    dashboard.hbs           User dashboard with stats and quick actions
+    cmpslots.hbs            Lab availability and seat maps
+    reserve.hbs             Seat selection and reservation form
+    reservations.hbs        View/manage reservations list
+    profile.hbs             User profile with edit mode
+    public-profile.hbs      Other user's public profile
+    users.hbs               User search and directory
+    walkin.hbs              Walk-in reservation (technician only)
+    changepassword.hbs      Change password form
+    error.hbs               Generic error page (404, 403, 500)
+
+Handlebars helpers registered:
+  - {{eq a b}}              Equality check for conditionals
+  - {{formatDate date}}     Formats ISO date to readable string
+  - {{formatTime slot}}     Maps time value to display label
+  - {{getInitials name}}    Returns first-letter initials for avatars
+  - {{ifTechnician role}}   Block helper for technician-only content
+  - {{json obj}}            Serializes object for inline <script> data
+
+C. COOKIES AND SESSIONS
+------------------------
+Implemented server-side session management using express-session with
+a MongoDB session store (connect-mongo).
+
+Setup (in server.js / app.js on the backend):
+  - express-session configured with:
+      secret: environment variable SESSION_SECRET
+      resave: false
+      saveUninitialized: false
+      cookie: { maxAge: 1000*60*60*24*7 } (7-day sessions)
+      store: MongoStore.create({ mongoUrl: MONGO_URI })
+  - On successful login, the user object (without password) is stored
+    in req.session.user.
+  - authMiddleware checks req.session.user on protected routes and
+    redirects to /login if absent.
+  - techMiddleware additionally checks req.session.user.accountType
+    === 'technician' for technician-only routes.
+  - Logout destroys the session via req.session.destroy() and clears
+    the cookie.
+  - "Remember Me" checkbox sets a longer maxAge (21 days) on the
+    session cookie.
+
+Session-protected routes:
+  GET  /dashboard          → authMiddleware
+  GET  /reservations       → authMiddleware
+  GET  /reserve            → authMiddleware
+  GET  /profile            → authMiddleware
+  PUT  /api/profile        → authMiddleware
+  POST /api/reservations   → authMiddleware
+  GET  /walkin             → authMiddleware + techMiddleware
+  POST /api/walkin         → authMiddleware + techMiddleware
+
+
+================================================================================
+12. BACKEND TODO (Remaining Work for Ivan & Chrisander)
+================================================================================
+
+IVAN — Node.js, Express, REST API
+----------------------------------
+[TODO] Initialize the Node.js project
+       - Run npm init, install express, express-handlebars,
+         express-session, connect-mongo, mongoose, bcrypt, dotenv
+       - Create package.json with start script ("node server.js")
+
+[TODO] Create server.js (main entry point)
+       - Set up Express app on port 3000
+       - Configure express-handlebars as the view engine
+       - Configure express-session with connect-mongo store
+       - Mount static file middleware for /assets and /js
+       - Connect to MongoDB via mongoose
+       - Mount route files
+
+[TODO] Create route files (routes/)
+       routes/
+         index.js           GET / → render index.hbs
+         auth.js            GET /login, POST /api/login, GET /register,
+                            POST /api/register, GET /adminsignup,
+                            POST /api/logout
+         dashboard.js       GET /dashboard → render dashboard.hbs
+         reservations.js    GET /reservations → render reservations.hbs
+                            GET /api/reservations → JSON (user's own)
+                            GET /api/reservations/all → JSON (technician)
+                            POST /api/reservations → create reservation
+                            PUT /api/reservations/:id → edit reservation
+                            DELETE /api/reservations/:id → cancel
+         reserve.js         GET /reserve → render reserve.hbs
+                            GET /api/labs → JSON (lab data + availability)
+                            GET /api/labs/:code/seats → JSON (seat status)
+         profile.js         GET /profile → render profile.hbs
+                            GET /public-profile/:id → render public-profile.hbs
+                            PUT /api/profile → update profile
+                            PUT /api/profile/password → change password
+                            DELETE /api/profile → delete account
+         users.js           GET /users → render users.hbs
+                            GET /api/users → JSON (search/filter)
+         walkin.js          GET /walkin → render walkin.hbs
+                            POST /api/walkin → create walk-in reservation
+                            GET /api/walkin → JSON (walk-in list)
+                            DELETE /api/walkin/:id → remove no-show
+         slots.js           GET /cmpslots → render cmpslots.hbs
+                            GET /api/slots → JSON (availability data)
+
+[TODO] Create middleware (middleware/)
+       middleware/
+         auth.js            authMiddleware — check req.session.user
+                            techMiddleware — check accountType === 'technician'
+
+[TODO] Implement controller logic for each route
+       - Each route handler should query the database via Mongoose models,
+         then either render a Handlebars view or return JSON.
+       - POST/PUT/DELETE routes return JSON { success, message, data }.
+       - GET page routes pass the session user + queried data to the
+         Handlebars template.
+
+[TODO] Add form validation on the server side
+       - Validate all POST/PUT request bodies (required fields, formats).
+       - Return 400 with error messages for invalid input.
+       - Student ID must be 8 digits.
+       - Email must end with @dlsu.edu.ph.
+       - Password minimum 8 characters.
+
+[TODO] Add error handling
+       - 404 handler for unknown routes → render error.hbs
+       - Global error middleware → render error.hbs with 500
+
+
+CHRISANDER — MongoDB, Mongoose, Password Hashing
+--------------------------------------------------
+[TODO] Set up MongoDB (local or Atlas)
+       - Create database: openlab_db
+       - Configure connection string in .env file
+       - MONGO_URI=mongodb://localhost:27017/openlab_db (or Atlas URL)
+
+[TODO] Create Mongoose models (models/)
+       models/
+         User.js
+           - firstName:    String, required
+           - lastName:     String, required
+           - email:        String, required, unique, lowercase
+           - password:     String, required (stored hashed)
+           - studentId:    String, required, unique
+           - college:      String, required, enum of 8 colleges
+           - accountType:  String, enum ['student', 'technician']
+           - avatar:       String (base64 or file path)
+           - bio:          String
+           - notifications: Boolean, default true
+           - createdAt:    Date, default Date.now
+
+         Reservation.js
+           - user:         ObjectId, ref 'User', required
+           - lab:          String, required (lab code e.g. "AG1010")
+           - seat:         String, required (e.g. "A3")
+           - date:         Date, required
+           - timeSlot:     String, required (e.g. "07:30")
+           - status:       String, enum ['confirmed','completed','cancelled']
+           - isAnonymous:  Boolean, default false
+           - isWalkIn:     Boolean, default false
+           - createdAt:    Date, default Date.now
+
+         Lab.js
+           - code:         String, required, unique
+           - building:     String, required
+           - totalSeats:   Number, required
+           - rows:         [String]
+           - cols:         Number
+           - hours:        String
+
+[TODO] Create seed script (seed.js)
+       - Seed 5 labs from the LABS constant
+       - Seed 6 default users (hash passwords with bcrypt)
+       - Seed 7+ default reservations
+       - Run with: node seed.js
+
+[TODO] Implement password hashing
+       - Use bcrypt (bcryptjs) for hashing
+       - Hash password on registration: bcrypt.hash(password, 10)
+       - Compare on login: bcrypt.compare(inputPassword, storedHash)
+       - Hash new password on password change
+       - Pre-save hook on User model to auto-hash if password is modified
+
+[TODO] Ensure all existing passwords in the database are hashed
+       - The seed script must hash all sample user passwords
+       - No plaintext passwords should exist in MongoDB
+
+
+================================================================================
+13. FULL BACKEND FILE STRUCTURE (Target)
+================================================================================
+
+project-root/
+  server.js                  Express app entry point (port 3000)
+  package.json               Dependencies and scripts
+  .env                       MONGO_URI, SESSION_SECRET, PORT
+  seed.js                    Database seed script
+  models/
+    User.js                  User schema
+    Reservation.js           Reservation schema
+    Lab.js                   Lab schema
+  routes/
+    index.js                 Landing page route
+    auth.js                  Login, register, logout routes
+    dashboard.js             Dashboard route
+    reservations.js          Reservation CRUD routes
+    reserve.js               Seat selection route
+    profile.js               Profile routes
+    users.js                 User search routes
+    walkin.js                Walk-in routes
+    slots.js                 Lab availability routes
+  middleware/
+    auth.js                  Session auth + technician guard
+  views/
+    layouts/
+      main.hbs              Main layout
+    partials/
+      navbar.hbs            Navigation bar
+      seatmap.hbs           Seat grid
+      reservation-card.hbs  Reservation card
+    index.hbs
+    login.hbs
+    register.hbs
+    adminsignup.hbs
+    dashboard.hbs
+    cmpslots.hbs
+    reserve.hbs
+    reservations.hbs
+    profile.hbs
+    public-profile.hbs
+    users.hbs
+    walkin.hbs
+    changepassword.hbs
+    error.hbs
+  js/
+    app.js                   Frontend JS (fetch-based, no localStorage)
+  assets/
+    css/
+      style.css              Styling (unchanged from Phase 1)
