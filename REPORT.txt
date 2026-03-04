@@ -516,3 +516,195 @@ project-root/
   assets/
     css/
       style.css              Styling (unchanged from Phase 1)
+
+
+================================================================================
+14. BACKEND IMPLEMENTATION ROADMAP
+================================================================================
+
+Instructions: Delete each item once it is fully implemented and tested.
+Progress is tracked by what remains in this list.
+
+------------------------------------------------------------------------
+PHASE A — Foundation (Do these first, everything else depends on them)
+------------------------------------------------------------------------
+
+[ ] A1. Implement server.js
+      - Require and configure Express, dotenv, mongoose, express-session,
+        connect-mongo, express-handlebars
+      - Connect to MongoDB using MONGO_URI from .env
+      - Configure Handlebars as view engine (layouts, partials, helpers)
+      - Set up express.json(), express.urlencoded(), express.static()
+      - Configure express-session with MongoStore
+      - Mount all route files
+      - Add 404 handler and global error middleware
+      - Listen on PORT (default 3000)
+
+[ ] A2. Implement User model (models/User.js)
+      - Define schema: firstName, lastName, email (unique, lowercase),
+        password, studentId (unique), college (enum), accountType (enum),
+        bio, avatarUrl, avatarClass, notifications, timestamps
+      - Add pre-save hook: hash password with bcrypt if modified
+      - Add instance method: comparePassword(candidatePassword)
+      - Create indexes on email and studentId
+
+[ ] A3. Implement Lab model (models/Lab.js)
+      - Define schema: code (unique), building, buildingKey, totalSeats,
+        rows, cols, hours
+      - No special hooks needed
+
+[ ] A4. Implement Reservation model (models/Reservation.js)
+      - Define schema: user (ObjectId ref User), lab, seat, building,
+        date, timeSlot, status (enum: upcoming/completed/cancelled),
+        anonymous, isWalkIn, createdBy (ObjectId ref User), timestamps
+      - Add compound index on { lab, seat, date, timeSlot, status }
+        to prevent double-booking
+
+[ ] A5. Implement auth middleware (middleware/auth.js)
+      - authMiddleware: check req.session.user exists, else redirect
+        to /login (for page routes) or return 401 JSON (for API routes)
+      - techMiddleware: check req.session.user.accountType === 'technician',
+        else render error.hbs with 403 or return 403 JSON
+
+[ ] A6. Implement seed.js
+      - Connect to MongoDB
+      - Clear existing User, Reservation, Lab collections
+      - Insert 5 labs (AG1010, LS313, GK101A, GK101B, GK304)
+      - Insert 6 users with bcrypt-hashed passwords
+        (maria_santos, jose_rizal, ana_lopez, karl_mendoza,
+         lea_cruz, tech_admin)
+      - Insert sample reservations (mix of upcoming, completed, cancelled)
+      - Disconnect and log results
+
+------------------------------------------------------------------------
+PHASE B — Authentication Routes (Login/Register/Logout)
+------------------------------------------------------------------------
+
+[ ] B1. Implement authController.js
+      - login: validate email+password, bcrypt.compare, set req.session.user
+      - register: validate fields, check duplicates, create User, set session
+      - logout: req.session.destroy(), clear cookie
+
+[ ] B2. Implement authRoutes.js
+      - POST /api/login        → authController.login
+      - POST /api/register     → authController.register
+      - POST /api/logout       → authController.logout
+
+------------------------------------------------------------------------
+PHASE C — Page Routes (Render Handlebars views)
+------------------------------------------------------------------------
+
+[ ] C1. Implement pageRoutes.js
+      - GET /                  → render index.hbs
+      - GET /login             → render login.hbs (redirect if logged in)
+      - GET /register          → render register.hbs (redirect if logged in)
+      - GET /adminsignup       → render adminsignup.hbs
+      - GET /dashboard         → authMiddleware → render dashboard.hbs
+        with user stats, upcoming reservations, recent activity
+      - GET /cmpslots          → render cmpslots.hbs with lab data
+      - GET /reserve           → authMiddleware → render reserve.hbs
+      - GET /reservations      → authMiddleware → render reservations.hbs
+      - GET /profile           → authMiddleware → render profile.hbs
+      - GET /public-profile/:id → render public-profile.hbs
+      - GET /users             → render users.hbs
+      - GET /walkin            → authMiddleware + techMiddleware → walkin.hbs
+      - GET /changepassword    → authMiddleware → changepassword.hbs
+
+------------------------------------------------------------------------
+PHASE D — Core API Routes (Reservations, Labs, Users)
+------------------------------------------------------------------------
+
+[ ] D1. Implement reservationController.js
+      - getUserReservations: find by user ID, sort by date desc
+      - getAllReservations: (technician) find all, populate user
+      - createReservation: validate no conflict, create document
+      - updateReservation: find by ID, verify ownership, update fields
+      - cancelReservation: find by ID, verify ownership, set status cancelled
+
+[ ] D2. Implement reservationRoutes.js
+      - GET    /api/reservations      → authMiddleware → getUserReservations
+      - GET    /api/reservations/all  → authMiddleware + techMiddleware
+                                        → getAllReservations
+      - POST   /api/reservations      → authMiddleware → createReservation
+      - PUT    /api/reservations/:id  → authMiddleware → updateReservation
+      - DELETE /api/reservations/:id  → authMiddleware → cancelReservation
+
+[ ] D3. Implement labController.js
+      - getAllLabs: return all labs
+      - getLabAvailability: for a given lab+date, return seat statuses
+        by cross-referencing reservations
+      - getLabSeats: return seat grid for a specific lab
+
+[ ] D4. Implement labRoutes.js
+      - GET /api/labs                 → getAllLabs
+      - GET /api/labs/:code/seats     → getLabSeats
+      - GET /api/labs/:code/availability → getLabAvailability
+
+[ ] D5. Implement userController.js
+      - searchUsers: filter by name, studentId, college; paginate
+      - getPublicProfile: find user by ID, exclude password
+      - updateProfile: validate + update current user fields
+      - changePassword: verify old password, hash new, save
+      - deleteAccount: remove user + their reservations
+
+[ ] D6. Implement userRoutes.js
+      - GET    /api/users             → searchUsers
+      - GET    /api/users/:id         → getPublicProfile
+      - PUT    /api/profile           → authMiddleware → updateProfile
+      - PUT    /api/profile/password  → authMiddleware → changePassword
+      - DELETE /api/profile           → authMiddleware → deleteAccount
+
+------------------------------------------------------------------------
+PHASE E — Walk-In Routes (Technician only)
+------------------------------------------------------------------------
+
+[ ] E1. Implement walkinController.js
+      - createWalkIn: validate student ID, create reservation with
+        isWalkIn=true, createdBy=technician user ID
+      - getWalkIns: find reservations where isWalkIn=true for today
+      - removeNoShow: find walk-in by ID, set status cancelled
+
+[ ] E2. Implement walkinRoutes.js
+      - POST   /api/walkin            → authMiddleware + techMiddleware
+                                        → createWalkIn
+      - GET    /api/walkin            → authMiddleware + techMiddleware
+                                        → getWalkIns
+      - DELETE /api/walkin/:id        → authMiddleware + techMiddleware
+                                        → removeNoShow
+
+------------------------------------------------------------------------
+PHASE F — Polish & Integration
+------------------------------------------------------------------------
+
+[ ] F1. Server-side form validation
+      - Validate all POST/PUT bodies (required fields, formats)
+      - Email must end with @dlsu.edu.ph
+      - Student ID must be 8 digits
+      - Password minimum 8 characters
+      - Return 400 with descriptive error messages
+
+[ ] F2. Error handling
+      - 404 catch-all → render error.hbs with "Page not found"
+      - Global error middleware → render error.hbs with 500
+      - Consistent JSON error format for API routes
+
+[ ] F3. Frontend fetch integration testing
+      - Verify all fetch() calls in public/js/app.js hit the correct
+        backend endpoints and handle responses properly
+      - Test CRUD flows: register → login → reserve → cancel → logout
+      - Test technician flows: walk-in → view all → remove no-show
+
+[ ] F4. Session edge cases
+      - Expired session redirects to login gracefully
+      - "Remember Me" extends cookie maxAge to 21 days
+      - Session persists across server restarts (MongoStore)
+
+[ ] F5. Final cleanup
+      - Remove legacy pages/ directory (old HTML files)
+      - Remove index.html (replaced by views/index.hbs)
+      - Verify all static assets served from public/
+      - Confirm .env is in .gitignore
+
+================================================================================
+END OF ROADMAP — Delete items above as they are completed.
+================================================================================
