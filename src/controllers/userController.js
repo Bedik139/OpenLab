@@ -2,7 +2,9 @@
  * User Controller (Ivan)
  *
  * TODO (Ivan):
- * 1. Import User model, Reservation model
+ * 1. Import models:
+ *    const User = require('../models/User');
+ *    const Reservation = require('../models/Reservation');
  *
  * 2. search(req, res):
  *    - Extract ?q=searchTerm&college=CCS from req.query

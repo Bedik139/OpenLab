@@ -2,7 +2,7 @@
  * Auth Controller (Ivan)
  *
  * TODO (Ivan):
- * 1. Import User model
+ * 1. Import User model: const User = require('../models/User');
  *
  * 2. login(req, res):
  *    - Extract { email, password } from req.body

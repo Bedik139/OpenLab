@@ -2,7 +2,10 @@
  * Walk-In Controller (Ivan)
  *
  * TODO (Ivan):
- * 1. Import Reservation model, User model, Lab model
+ * 1. Import models:
+ *    const Reservation = require('../models/Reservation');
+ *    const User = require('../models/User');
+ *    const Lab = require('../models/Lab');
  *
  * 2. getAll(req, res):
  *    - Fetch all upcoming walk-in reservations:

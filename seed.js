@@ -4,7 +4,7 @@
  * Run: node seed.js
  *
  * TODO (Chrisander):
- * 1. Import mongoose, dotenv, and the three models (User, Lab, Reservation)
+ * 1. Import mongoose, dotenv, and the three models from src/models/ (User, Lab, Reservation)
  * 2. Load .env: require('dotenv').config();
  * 3. Connect to MongoDB using process.env.MONGODB_URI
  * 4. Clear existing data: await User.deleteMany({}); await Lab.deleteMany({}); await Reservation.deleteMany({});
@@ -42,10 +42,10 @@
 const mongoose = require('mongoose'); // Import mongoose to connect to MongoDB and perform database operations
 require('dotenv').config(); // This loads the .env file and makes the variables available in process.env
 
-// Import the models
-const User = require('./models/User');
-const Lab = require('./models/Lab');
-const Reservation = require('./models/Reservation');
+// Import the models (located in src/models/)
+const User = require('./src/models/User');
+const Lab = require('./src/models/Lab');
+const Reservation = require('./src/models/Reservation');
 
 /**
 This async function seeds (fills) the database with sample data. It performs the following steps:

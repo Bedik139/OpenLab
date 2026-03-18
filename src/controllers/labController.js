@@ -2,7 +2,9 @@
  * Lab Controller (Ivan)
  *
  * TODO (Ivan):
- * 1. Import Lab model, Reservation model
+ * 1. Import models:
+ *    const Lab = require('../models/Lab');
+ *    const Reservation = require('../models/Reservation');
  *
  * 2. getAll(req, res):
  *    - Fetch all labs from Lab model

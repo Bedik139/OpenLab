@@ -4,9 +4,11 @@ OPENLAB COMPUTER RESERVATION SYSTEM - PROJECT REPORT
 
 PROJECT OVERVIEW
 ----------------
-A front-end only (Phase 1) lab reservation system for DLSU built with
-HTML, CSS, jQuery 4.0, and Bootstrap 4.4.1. All data is stored in
-JavaScript variables and localStorage. No backend or database.
+A full-stack lab reservation system for DLSU built with Node.js, Express,
+Handlebars, Mongoose (MongoDB), and Bootstrap. The project follows the
+mc3-debttracker folder structure: index.js at the root as the entry point,
+all source code inside src/ (models, routes, controllers, middleware,
+helpers, views), and static assets in public/.
 
 
 ================================================================================
@@ -32,39 +34,81 @@ OTHER SAMPLE STUDENT ACCOUNTS (all use password: password123)
 2. FILE STRUCTURE
 ================================================================================
 
-index.html                  Landing page (public)
-pages/
-  login.html                Student/general login
-  register.html             Account registration
-  adminsignup.html          Technician-specific login
-  dashboard.html            User dashboard (protected)
-  cmpslots.html             View computer lab availability (public)
-  reserve.html              Reserve a seat (protected)
-  reservations.html         View/manage reservations (protected)
-  profile.html              View/edit own profile (protected)
-  public-profile.html       View another user's profile
-  users.html                Search/find other users
-  walkin.html               Walk-in reservation (technician only)
-  changepassword.html       Change password (protected)
-js/
-  app.js                    ALL application logic (~2480 lines)
-assets/css/
-  style.css                 All styling
+Following the mc3-debttracker folder convention:
+  - "main" file (index.js) at the root as the entry point
+  - src/ contains all server-side source code
+  - src/models/ ("database" folder) holds Mongoose schemas + conn.js
+  - src/routes/mainRouter.js is one single router (for novice developers)
+  - src/views/ stores Handlebars templates (front-end blueprints)
+  - public/ is the static folder for CSS, JS, and uploaded assets
+
+index.js                    Express app entry point (port 3000)
+package.json                Dependencies and scripts
+seed.js                     Database seed script
+.env                        MONGODB_URI, SESSION_SECRET, PORT
+
+public/                     Static folder (served by express.static)
+  css/style.css             All styling
+  js/app.js                 Frontend JS (fetch-based, no localStorage)
+  assets/bg.png             Background image
+
+src/
+  models/                   Mongoose schemas (the "database/models" folder)
+    conn.js                 MongoDB connection module (connect/disconnect)
+    User.js                 User schema (bcrypt pre-save hook)
+    Reservation.js          Reservation schema (compound index)
+    Lab.js                  Lab schema
+  routes/
+    mainRouter.js           Single router — all page + API routes
+  controllers/
+    authController.js       Login, register, logout logic
+    labController.js        Lab data and seat availability
+    reservationController.js  Reservation CRUD
+    userController.js       User search, profile, password
+    walkinController.js     Walk-in reservation (technician only)
+  middleware/
+    auth.js                 authMiddleware + techMiddleware
+  helpers/
+    hbs-helpers.js          Handlebars helpers (eq, formatDate, etc.)
+  views/                    Handlebars templates
+    layouts/
+      auth.hbs              Layout for login/register pages
+      dashboard.hbs         Layout for authenticated pages
+    partials/
+      head.hbs              HTML <head> partial
+      navbar.hbs            Navigation bar partial
+    index.hbs               Landing page
+    login.hbs               Login form
+    register.hbs            Registration form
+    adminsignup.hbs         Technician login
+    dashboard.hbs           User dashboard
+    cmpslots.hbs            Lab availability
+    reserve.hbs             Seat selection and reservation
+    reservations.hbs        View/manage reservations
+    profile.hbs             User profile
+    public-profile.hbs      Other user's public profile
+    users.hbs               User search and directory
+    walkin.hbs              Walk-in reservation (technician only)
+    changepassword.hbs      Change password form
+    error.hbs               Generic error page
+
+specs/                      Project specification PDFs
 
 
 ================================================================================
 3. HOW AUTHENTICATION WORKS
 ================================================================================
 
-- All user accounts are stored in localStorage under key 'openlab_accounts'
-- On first load, SAMPLE_USERS (6 users) are seeded into this store
-- Login validates email + password against stored accounts
-- On success, a session object (without password) is saved to 'openlab_user'
-- Registration creates a new entry in the accounts store with the password
-- Duplicate emails and student IDs are rejected during registration
+- User accounts are stored in MongoDB (users collection)
+- Passwords are hashed with bcrypt (pre-save hook on User model)
+- Login validates email + password via bcrypt.compare()
+- On success, user object (without password) is stored in req.session.user
+- Sessions are persisted in MongoDB via connect-mongo
+- Registration creates a new User document (password auto-hashed)
+- Duplicate emails and student IDs are rejected (unique index)
 - After registration, the user is auto-logged in and redirected to dashboard
-- Logging out removes the session and redirects to the landing page
-- Password changes update the account in the accounts store directly
+- Logging out destroys the session and clears the cookie
+- Password changes use comparePassword() + pre-save hook for new hash
 
 
 ================================================================================
@@ -100,13 +144,17 @@ TECHNICIAN-ONLY PAGE (students get "Access denied"):
 
 
 ================================================================================
-5. DATA STORAGE (localStorage keys)
+5. DATA STORAGE (MongoDB + Sessions)
 ================================================================================
 
-openlab_user              Current logged-in user session (JSON object)
-openlab_reservations      Current user's reservations (JSON array)
-openlab_accounts          All registered accounts with passwords (JSON array)
-openlab_all_reservations  All reservations from all users (JSON array)
+MongoDB Collections:
+  users                   All registered accounts (passwords hashed with bcrypt)
+  reservations            All reservations from all users
+  labs                    Computer lab definitions (5 labs)
+  sessions               Express session store (managed by connect-mongo)
+
+Session (express-session + connect-mongo):
+  req.session.user        Current logged-in user object (no password)
 
 
 ================================================================================
@@ -166,31 +214,37 @@ SEARCH
 
 
 ================================================================================
-7. ALL HTML FILES ARE SKELETON-ONLY
+7. HANDLEBARS TEMPLATES (src/views/)
 ================================================================================
 
-Every HTML file contains only:
-  - <head> with CSS/JS includes
-  - An empty container div inside .site-wrapper
+All pages are rendered server-side using Express-Handlebars.
+Each .hbs template is a blueprint for the front-end response, with
+dynamic elements replaced/generated during server-side rendering.
 
-ALL content (navbar, forms, cards, lists, buttons) is generated dynamically
-by jQuery DOM manipulation in app.js. There is zero hardcoded HTML data.
+Templates use two layouts:
+  - auth.hbs:      For public/login pages (minimal chrome)
+  - dashboard.hbs: For authenticated pages (navbar, sidebar)
+
+Partials (reusable components):
+  - head.hbs:    Shared <head> with CSS/JS includes
+  - navbar.hbs:  Dynamic navbar (role-aware links)
 
 
 ================================================================================
 8. HOW TO TEST
 ================================================================================
 
-1. Open index.html in a browser
-2. Click "View Labs" or navigate to login
-3. Login with one of the default accounts above
-4. To test as student: use maria_santos@dlsu.edu.ph / password123
-5. To test as technician: use tech_admin@dlsu.edu.ph / admin123
-6. To test registration: click "Sign up", fill the form, submit
-7. To reset all data: open browser console and run localStorage.clear()
-
-NOTE: If you previously had data in localStorage from before these changes,
-run localStorage.clear() in the browser console to reset, then refresh.
+1. Ensure MongoDB is running (local or Atlas)
+2. Create a .env file with MONGODB_URI, SESSION_SECRET, PORT
+3. Run: npm install
+4. Run: node seed.js          (seeds sample data into MongoDB)
+5. Run: npm start             (or npm run dev for nodemon)
+6. Open http://localhost:3000 in a browser
+7. Login with one of the default accounts above
+8. To test as student: use maria_santos@dlsu.edu.ph / password123
+9. To test as technician: use tech_admin@dlsu.edu.ph / admin123
+10. To test registration: click "Sign up", fill the form, submit
+11. To re-seed data: run node seed.js again (clears and re-inserts)
 
 
 ================================================================================
@@ -268,14 +322,14 @@ Converted all page views from jQuery DOM manipulation to server-side
 Handlebars templates. Each page builder function in app.js was replaced
 by a corresponding .hbs file rendered by the Express server.
 
-Template files created (views/):
-  views/
+Template files created (src/views/):
+  src/views/
     layouts/
-      main.hbs              Main layout with <head>, navbar partial, {{{body}}}
+      auth.hbs              Layout for public pages
+      dashboard.hbs         Layout for authenticated pages
     partials/
+      head.hbs              Shared <head> with CSS/JS includes
       navbar.hbs            Dynamic navbar (role-aware links)
-      seatmap.hbs           Reusable seat grid partial
-      reservation-card.hbs  Single reservation card partial
     index.hbs               Landing page
     login.hbs               Login form
     register.hbs            Registration form
@@ -304,7 +358,7 @@ C. COOKIES AND SESSIONS
 Implemented server-side session management using express-session with
 a MongoDB session store (connect-mongo).
 
-Setup (in server.js / app.js on the backend):
+Setup (in index.js — the main entry point):
   - express-session configured with:
       secret: environment variable SESSION_SECRET
       resave: false
@@ -339,56 +393,56 @@ Session-protected routes:
 
 IVAN — Node.js, Express, REST API
 ----------------------------------
-[TODO] Initialize the Node.js project
-       - Run npm init, install express, express-handlebars,
-         express-session, connect-mongo, mongoose, bcrypt, dotenv
-       - Create package.json with start script ("node server.js")
-
-[TODO] Create server.js (main entry point)
+[TODO] Implement index.js (main entry point)
        - Set up Express app on port 3000
-       - Configure express-handlebars as the view engine
+       - Import DB connection from ./src/models/conn.js
+       - Import main router from ./src/routes/mainRouter.js
+       - Configure express-handlebars (views in src/views/)
        - Configure express-session with connect-mongo store
-       - Mount static file middleware for /assets and /js
-       - Connect to MongoDB via mongoose
-       - Mount route files
+       - Mount static file middleware for public/
+       - Connect to MongoDB via conn.js
+       - Mount the single main router
 
-[TODO] Create route files (routes/)
-       routes/
-         index.js           GET / → render index.hbs
-         auth.js            GET /login, POST /api/login, GET /register,
-                            POST /api/register, GET /adminsignup,
-                            POST /api/logout
-         dashboard.js       GET /dashboard → render dashboard.hbs
-         reservations.js    GET /reservations → render reservations.hbs
-                            GET /api/reservations → JSON (user's own)
-                            GET /api/reservations/all → JSON (technician)
-                            POST /api/reservations → create reservation
-                            PUT /api/reservations/:id → edit reservation
-                            DELETE /api/reservations/:id → cancel
-         reserve.js         GET /reserve → render reserve.hbs
-                            GET /api/labs → JSON (lab data + availability)
-                            GET /api/labs/:code/seats → JSON (seat status)
-         profile.js         GET /profile → render profile.hbs
-                            GET /public-profile/:id → render public-profile.hbs
-                            PUT /api/profile → update profile
-                            PUT /api/profile/password → change password
-                            DELETE /api/profile → delete account
-         users.js           GET /users → render users.hbs
-                            GET /api/users → JSON (search/filter)
-         walkin.js          GET /walkin → render walkin.hbs
-                            POST /api/walkin → create walk-in reservation
-                            GET /api/walkin → JSON (walk-in list)
-                            DELETE /api/walkin/:id → remove no-show
-         slots.js           GET /cmpslots → render cmpslots.hbs
-                            GET /api/slots → JSON (availability data)
+[TODO] Implement src/routes/mainRouter.js (single router)
+       All page + API routes in one file (following mc3-debttracker
+       convention of "just one" router for the meantime):
+         GET /                      → render index.hbs
+         GET /login                 → render login.hbs
+         GET /register              → render register.hbs
+         GET /adminsignup           → render adminsignup.hbs
+         GET /dashboard             → authMiddleware → render dashboard.hbs
+         GET /cmpslots              → authMiddleware → render cmpslots.hbs
+         GET /reserve               → authMiddleware → render reserve.hbs
+         GET /reservations          → authMiddleware → render reservations.hbs
+         GET /profile               → authMiddleware → render profile.hbs
+         GET /profile/:id           → authMiddleware → render public-profile.hbs
+         GET /users                 → authMiddleware → render users.hbs
+         GET /walkin                → techMiddleware → render walkin.hbs
+         GET /changepassword        → authMiddleware → render changepassword.hbs
+         POST /api/login            → authController.login
+         POST /api/register         → authController.register
+         POST /api/logout           → authController.logout
+         GET  /api/reservations     → reservationController.getAll
+         POST /api/reservations     → reservationController.create
+         PUT  /api/reservations/:id → reservationController.update
+         DELETE /api/reservations/:id → reservationController.cancel
+         GET  /api/labs             → labController.getAll
+         GET  /api/labs/:code/seats → labController.getSeats
+         GET  /api/users            → userController.search
+         PUT  /api/profile          → userController.updateProfile
+         PUT  /api/profile/password → userController.changePassword
+         DELETE /api/profile        → userController.deleteAccount
+         POST /api/walkin           → walkinController.create
+         GET  /api/walkin           → walkinController.getAll
+         PUT  /api/walkin/:id/remove → walkinController.removeNoShow
 
-[TODO] Create middleware (middleware/)
-       middleware/
-         auth.js            authMiddleware — check req.session.user
-                            techMiddleware — check accountType === 'technician'
+[TODO] Implement src/middleware/auth.js
+       - authMiddleware — check req.session.user
+       - techMiddleware — check accountType === 'technician'
 
-[TODO] Implement controller logic for each route
-       - Each route handler should query the database via Mongoose models,
+[TODO] Implement controller logic (src/controllers/)
+       - Each controller imports models from ../models/
+       - Controllers query the database via Mongoose models,
          then either render a Handlebars view or return JSON.
        - POST/PUT/DELETE routes return JSON { success, message, data }.
        - GET page routes pass the session user + queried data to the
@@ -413,8 +467,8 @@ CHRISANDER — MongoDB, Mongoose, Password Hashing
        - Configure connection string in .env file
        - MONGO_URI=mongodb://localhost:27017/openlab_db (or Atlas URL)
 
-[TODO] Create Mongoose models (models/)
-       models/
+[TODO] Create Mongoose models (src/models/)
+       src/models/
          User.js
            - firstName:    String, required
            - lastName:     String, required
@@ -447,10 +501,9 @@ CHRISANDER — MongoDB, Mongoose, Password Hashing
            - cols:         Number
            - hours:        String
 
-[TODO] Create seed script (seed.js)
-       - Seed 5 labs from the LABS constant
-       - Seed 6 default users (hash passwords with bcrypt)
-       - Seed 7+ default reservations
+[DONE] Create seed script (seed.js)
+       - Connects to MongoDB, seeds 5 labs, 6 users, 7 reservations
+       - Imports models from ./src/models/
        - Run with: node seed.js
 
 [TODO] Implement password hashing
@@ -466,56 +519,64 @@ CHRISANDER — MongoDB, Mongoose, Password Hashing
 
 
 ================================================================================
-13. FULL BACKEND FILE STRUCTURE (Target)
+13. FULL FILE STRUCTURE (mc3-debttracker convention)
 ================================================================================
 
 project-root/
-  server.js                  Express app entry point (port 3000)
+  index.js                   Express app entry point (port 3000)
   package.json               Dependencies and scripts
-  .env                       MONGO_URI, SESSION_SECRET, PORT
+  .env                       MONGODB_URI, SESSION_SECRET, PORT
   seed.js                    Database seed script
-  models/
-    User.js                  User schema
-    Reservation.js           Reservation schema
-    Lab.js                   Lab schema
-  routes/
-    index.js                 Landing page route
-    auth.js                  Login, register, logout routes
-    dashboard.js             Dashboard route
-    reservations.js          Reservation CRUD routes
-    reserve.js               Seat selection route
-    profile.js               Profile routes
-    users.js                 User search routes
-    walkin.js                Walk-in routes
-    slots.js                 Lab availability routes
-  middleware/
-    auth.js                  Session auth + technician guard
-  views/
-    layouts/
-      main.hbs              Main layout
-    partials/
-      navbar.hbs            Navigation bar
-      seatmap.hbs           Seat grid
-      reservation-card.hbs  Reservation card
-    index.hbs
-    login.hbs
-    register.hbs
-    adminsignup.hbs
-    dashboard.hbs
-    cmpslots.hbs
-    reserve.hbs
-    reservations.hbs
-    profile.hbs
-    public-profile.hbs
-    users.hbs
-    walkin.hbs
-    changepassword.hbs
-    error.hbs
-  js/
-    app.js                   Frontend JS (fetch-based, no localStorage)
-  assets/
+
+  public/                    Static folder (express.static)
     css/
-      style.css              Styling (unchanged from Phase 1)
+      style.css              All styling
+    js/
+      app.js                 Frontend JS (fetch-based)
+    assets/
+      bg.png                 Background image
+
+  src/
+    models/                  Mongoose schemas ("database/models")
+      conn.js                MongoDB connection module
+      User.js                User schema (bcrypt hooks)
+      Reservation.js         Reservation schema (compound index)
+      Lab.js                 Lab schema
+    routes/
+      mainRouter.js          Single router — all page + API routes
+    controllers/
+      authController.js      Login, register, logout
+      labController.js       Lab data and seat availability
+      reservationController.js  Reservation CRUD
+      userController.js      User search, profile, password
+      walkinController.js    Walk-in reservation (technician)
+    middleware/
+      auth.js                authMiddleware + techMiddleware
+    helpers/
+      hbs-helpers.js         Handlebars helpers
+    views/
+      layouts/
+        auth.hbs             Layout for public pages
+        dashboard.hbs        Layout for authenticated pages
+      partials/
+        head.hbs             HTML <head> partial
+        navbar.hbs           Navigation bar
+      index.hbs
+      login.hbs
+      register.hbs
+      adminsignup.hbs
+      dashboard.hbs
+      cmpslots.hbs
+      reserve.hbs
+      reservations.hbs
+      profile.hbs
+      public-profile.hbs
+      users.hbs
+      walkin.hbs
+      changepassword.hbs
+      error.hbs
+
+  specs/                     Project specification PDFs
 
 
 ================================================================================
@@ -529,18 +590,18 @@ Progress is tracked by what remains in this list.
 PHASE A — Foundation (Do these first, everything else depends on them)
 ------------------------------------------------------------------------
 
-[ ] A1. Implement server.js
-      - Require and configure Express, dotenv, mongoose, express-session,
-        connect-mongo, express-handlebars
-      - Connect to MongoDB using MONGO_URI from .env
-      - Configure Handlebars as view engine (layouts, partials, helpers)
-      - Set up express.json(), express.urlencoded(), express.static()
+[ ] A1. Implement index.js (main entry point)
+      - Import DB connection from ./src/models/conn.js
+      - Import main router from ./src/routes/mainRouter.js
+      - Import helpers from ./src/helpers/hbs-helpers
+      - Configure Handlebars (views in src/views/, layouts, partials)
+      - Set up express.json(), express.urlencoded(), express.static('public')
       - Configure express-session with MongoStore
-      - Mount all route files
+      - Mount the single main router
       - Add 404 handler and global error middleware
-      - Listen on PORT (default 3000)
+      - Start server and connect to DB via conn.js
 
-[ ] A2. Implement User model (models/User.js)
+[ ] A2. Implement User model (src/models/User.js)
       - Define schema: firstName, lastName, email (unique, lowercase),
         password, studentId (unique), college (enum), accountType (enum),
         bio, avatarUrl, avatarClass, notifications, timestamps
@@ -548,19 +609,19 @@ PHASE A — Foundation (Do these first, everything else depends on them)
       - Add instance method: comparePassword(candidatePassword)
       - Create indexes on email and studentId
 
-[ ] A3. Implement Lab model (models/Lab.js)
+[ ] A3. Implement Lab model (src/models/Lab.js)
       - Define schema: code (unique), building, buildingKey, totalSeats,
         rows, cols, hours
       - No special hooks needed
 
-[ ] A4. Implement Reservation model (models/Reservation.js)
+[ ] A4. Implement Reservation model (src/models/Reservation.js)
       - Define schema: user (ObjectId ref User), lab, seat, building,
         date, timeSlot, status (enum: upcoming/completed/cancelled),
         anonymous, isWalkIn, createdBy (ObjectId ref User), timestamps
       - Add compound index on { lab, seat, date, timeSlot, status }
         to prevent double-booking
 
-[ ] A5. Implement auth middleware (middleware/auth.js)
+[ ] A5. Implement auth middleware (src/middleware/auth.js)
       - authMiddleware: check req.session.user exists, else redirect
         to /login (for page routes) or return 401 JSON (for API routes)
       - techMiddleware: check req.session.user.accountType === 'technician',
@@ -580,12 +641,12 @@ PHASE A — Foundation (Do these first, everything else depends on them)
 PHASE B — Authentication Routes (Login/Register/Logout)
 ------------------------------------------------------------------------
 
-[ ] B1. Implement authController.js
+[ ] B1. Implement src/controllers/authController.js
       - login: validate email+password, bcrypt.compare, set req.session.user
       - register: validate fields, check duplicates, create User, set session
       - logout: req.session.destroy(), clear cookie
 
-[ ] B2. Implement authRoutes.js
+[ ] B2. Add auth routes to src/routes/mainRouter.js
       - POST /api/login        → authController.login
       - POST /api/register     → authController.register
       - POST /api/logout       → authController.logout
@@ -594,7 +655,7 @@ PHASE B — Authentication Routes (Login/Register/Logout)
 PHASE C — Page Routes (Render Handlebars views)
 ------------------------------------------------------------------------
 
-[ ] C1. Implement pageRoutes.js
+[ ] C1. Add page routes to src/routes/mainRouter.js
       - GET /                  → render index.hbs
       - GET /login             → render login.hbs (redirect if logged in)
       - GET /register          → render register.hbs (redirect if logged in)
@@ -614,14 +675,14 @@ PHASE C — Page Routes (Render Handlebars views)
 PHASE D — Core API Routes (Reservations, Labs, Users)
 ------------------------------------------------------------------------
 
-[ ] D1. Implement reservationController.js
+[ ] D1. Implement src/controllers/reservationController.js
       - getUserReservations: find by user ID, sort by date desc
       - getAllReservations: (technician) find all, populate user
       - createReservation: validate no conflict, create document
       - updateReservation: find by ID, verify ownership, update fields
       - cancelReservation: find by ID, verify ownership, set status cancelled
 
-[ ] D2. Implement reservationRoutes.js
+[ ] D2. Add reservation API routes to src/routes/mainRouter.js
       - GET    /api/reservations      → authMiddleware → getUserReservations
       - GET    /api/reservations/all  → authMiddleware + techMiddleware
                                         → getAllReservations
@@ -629,25 +690,25 @@ PHASE D — Core API Routes (Reservations, Labs, Users)
       - PUT    /api/reservations/:id  → authMiddleware → updateReservation
       - DELETE /api/reservations/:id  → authMiddleware → cancelReservation
 
-[ ] D3. Implement labController.js
+[ ] D3. Implement src/controllers/labController.js
       - getAllLabs: return all labs
       - getLabAvailability: for a given lab+date, return seat statuses
         by cross-referencing reservations
       - getLabSeats: return seat grid for a specific lab
 
-[ ] D4. Implement labRoutes.js
+[ ] D4. Add lab API routes to src/routes/mainRouter.js
       - GET /api/labs                 → getAllLabs
       - GET /api/labs/:code/seats     → getLabSeats
       - GET /api/labs/:code/availability → getLabAvailability
 
-[ ] D5. Implement userController.js
+[ ] D5. Implement src/controllers/userController.js
       - searchUsers: filter by name, studentId, college; paginate
       - getPublicProfile: find user by ID, exclude password
       - updateProfile: validate + update current user fields
       - changePassword: verify old password, hash new, save
       - deleteAccount: remove user + their reservations
 
-[ ] D6. Implement userRoutes.js
+[ ] D6. Add user API routes to src/routes/mainRouter.js
       - GET    /api/users             → searchUsers
       - GET    /api/users/:id         → getPublicProfile
       - PUT    /api/profile           → authMiddleware → updateProfile
@@ -658,13 +719,13 @@ PHASE D — Core API Routes (Reservations, Labs, Users)
 PHASE E — Walk-In Routes (Technician only)
 ------------------------------------------------------------------------
 
-[ ] E1. Implement walkinController.js
+[ ] E1. Implement src/controllers/walkinController.js
       - createWalkIn: validate student ID, create reservation with
         isWalkIn=true, createdBy=technician user ID
       - getWalkIns: find reservations where isWalkIn=true for today
       - removeNoShow: find walk-in by ID, set status cancelled
 
-[ ] E2. Implement walkinRoutes.js
+[ ] E2. Add walk-in API routes to src/routes/mainRouter.js
       - POST   /api/walkin            → authMiddleware + techMiddleware
                                         → createWalkIn
       - GET    /api/walkin            → authMiddleware + techMiddleware
@@ -690,7 +751,7 @@ PHASE F — Polish & Integration
 
 [ ] F3. Frontend fetch integration testing
       - Verify all fetch() calls in public/js/app.js hit the correct
-        backend endpoints and handle responses properly
+        endpoints defined in src/routes/mainRouter.js
       - Test CRUD flows: register → login → reserve → cancel → logout
       - Test technician flows: walk-in → view all → remove no-show
 
@@ -699,10 +760,16 @@ PHASE F — Polish & Integration
       - "Remember Me" extends cookie maxAge to 21 days
       - Session persists across server restarts (MongoStore)
 
-[ ] F5. Final cleanup
-      - Remove legacy pages/ directory (old HTML files)
-      - Remove index.html (replaced by views/index.hbs)
-      - Verify all static assets served from public/
+[DONE] F5. Folder reorganization (mc3-debttracker convention)
+      - Removed legacy pages/ directory (old HTML files)
+      - Removed index.html (replaced by src/views/index.hbs)
+      - Removed duplicate assets/ and js/ directories
+      - Renamed server.js → index.js (entry point at root)
+      - Moved all source into src/ (models, routes, controllers,
+        middleware, helpers, views)
+      - Created src/models/conn.js for DB connection module
+      - Consolidated all routes into src/routes/mainRouter.js
+      - All static assets served from public/
       - Confirm .env is in .gitignore
 
 ================================================================================

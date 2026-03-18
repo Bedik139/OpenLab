@@ -2,7 +2,9 @@
  * Reservation Controller (Ivan)
  *
  * TODO (Ivan):
- * 1. Import Reservation model, Lab model
+ * 1. Import models:
+ *    const Reservation = require('../models/Reservation');
+ *    const Lab = require('../models/Lab');
  *
  * 2. getAll(req, res):
  *    - If technician: Reservation.find().populate('user', 'firstName lastName email studentId').sort({ date: -1 })
