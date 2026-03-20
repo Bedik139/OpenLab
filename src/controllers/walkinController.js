@@ -37,6 +37,7 @@
 const Reservation = require('../models/Reservation');
 const User = require('../models/User');
 const Lab = require('../models/Lab');
+const emailService = require('../helpers/emailService');
 
 // 2. getAll(req, res)
 const getAll = async (req, res) => {
@@ -59,12 +60,14 @@ const getAll = async (req, res) => {
 // 3. create(req, res)
 const create = async (req, res) => {
     try {
-        const { studentId, lab, seat, date, timeSlot } = req.body;
+        const { lab, seat, date, timeSlot, timeSlots } = req.body;
+
+        // Normalize to an array of slots
+        const slots = timeSlots && Array.isArray(timeSlots) && timeSlots.length > 0
+            ? timeSlots
+            : (timeSlot ? [timeSlot] : []);
 
         // Back-end validation
-        if (!studentId || !/^[0-9]{8}$/.test(studentId)) {
-            return res.status(400).json({ error: 'Student ID must be exactly 8 digits.' });
-        }
         if (!lab || !lab.trim()) {
             return res.status(400).json({ error: 'Lab is required.' });
         }
@@ -80,21 +83,13 @@ const create = async (req, res) => {
         if (walkDate < todayDate) {
             return res.status(400).json({ error: 'Cannot reserve for a past date.' });
         }
-        if (!timeSlot || !timeSlot.trim()) {
-            return res.status(400).json({ error: 'Time slot is required.' });
+        if (slots.length === 0) {
+            return res.status(400).json({ error: 'At least one time slot is required.' });
         }
 
         // Ensure the technician is logged in
         if (!req.session.user) {
             return res.status(401).json({ error: 'Unauthorized: Please log in as a technician' });
-        }
-
-        // Look up the student by their Student ID
-        const student = await User.findOne({ studentId });
-        if (!student) {
-            return res.status(404).json({ 
-                error: `Student with ID ${studentId} not found in the system. Please have them register first.` 
-            });
         }
 
         // Look up lab info from Lab model to get the building name
@@ -103,34 +98,49 @@ const create = async (req, res) => {
             return res.status(404).json({ error: 'Lab not found' });
         }
 
-        // Prevent double-booking for the exact same seat and time
-        const existingReservation = await Reservation.findOne({
+        // Prevent double-booking: check for any overlap
+        const startOfDay = new Date(date);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(date);
+        endOfDay.setHours(23, 59, 59, 999);
+        const conflicting = await Reservation.findOne({
             lab,
             seat,
-            date,
-            timeSlot,
+            date: { $gte: startOfDay, $lte: endOfDay },
+            timeSlots: { $in: slots },
             status: 'upcoming'
         });
 
-        if (existingReservation) {
-            return res.status(400).json({ error: 'This seat is already reserved for the selected time slot.' });
+        if (conflicting) {
+            const overlap = conflicting.timeSlots.filter(s => slots.includes(s));
+            return res.status(400).json({
+                error: 'Seat ' + seat + ' is already reserved for "' + overlap[0] + '". Please deselect that slot.'
+            });
         }
 
-        // Create the new walk-in reservation
+        // Create the walk-in reservation under the technician's account
+        const techId = req.session.user._id;
         const newReservation = new Reservation({
-            user: student._id,
+            user: techId,
             lab: lab,
             building: labInfo.building,
             seat,
             date,
-            timeSlot,
+            timeSlots: slots,
             isWalkIn: true,
-            createdBy: req.session.user._id, // Tracks which technician made the booking
+            createdBy: techId,
             status: 'upcoming'
         });
 
         await newReservation.save();
-        return res.status(201).json({ success: true, reservation: newReservation });
+
+        // Send email notification to the technician
+        const techUser = await User.findById(techId).select('firstName email notifications').lean();
+        if (techUser) {
+            emailService.notifyReservationCreated(techUser, newReservation).catch(() => {});
+        }
+
+        return res.status(201).json({ success: true, count: slots.length, reservation: newReservation });
 
     } catch (error) {
         console.error('Error creating walk-in reservation:', error);
@@ -155,7 +165,8 @@ const removeNoShow = async (req, res) => {
 
         // Enforce 10-minute window: parse reservation time and check
         const reservationDate = new Date(reservation.date);
-        const timeStr = reservation.timeSlot.split(' - ')[0]; // e.g. "09:00 AM"
+        const firstSlot = reservation.timeSlots && reservation.timeSlots[0] ? reservation.timeSlots[0] : '';
+        const timeStr = firstSlot.split(' - ')[0]; // e.g. "09:00 AM"
         const timeParts = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
         if (timeParts) {
             let hours = parseInt(timeParts[1]);
@@ -181,6 +192,12 @@ const removeNoShow = async (req, res) => {
         // Set status to cancelled (indicating a no-show)
         reservation.status = 'cancelled';
         await reservation.save();
+
+        // Notify the student their reservation was cancelled
+        const noShowUser = await User.findById(reservation.user).select('firstName email notifications').lean();
+        if (noShowUser) {
+            emailService.notifyReservationCancelled(noShowUser, reservation).catch(() => {});
+        }
 
         return res.json({ success: true, message: 'Walk-in reservation cancelled (No-show recorded).' });
 

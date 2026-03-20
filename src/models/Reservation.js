@@ -54,9 +54,13 @@ const reservationSchema = new mongoose.Schema({
     required: true
   },
 
-  timeSlot: {
-    type: String,
-    required: true
+  timeSlots: {
+    type: [String],
+    required: true,
+    validate: {
+      validator: function(v) { return v && v.length > 0; },
+      message: 'At least one time slot is required.'
+    }
   },
 
   status: {
@@ -88,7 +92,7 @@ reservationSchema.index({
   lab: 1,
   seat: 1,
   date: 1,
-  timeSlot: 1,
+  timeSlots: 1,
   status: 1
 });
 

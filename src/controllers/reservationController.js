@@ -44,6 +44,8 @@
 // 1. Import models
 const Reservation = require('../models/Reservation');
 const Lab = require('../models/Lab');
+const User = require('../models/User');
+const emailService = require('../helpers/emailService');
 
 // 2. getAll(req, res)
 const getAll = async (req, res) => {
@@ -97,10 +99,16 @@ const getById = async (req, res) => {
 };
 
 // 4. create(req, res)
+// Creates a single reservation with one or more time slots
 const create = async (req, res) => {
     try {
-        const { lab, seat, date, timeSlot, anonymous } = req.body;
+        const { lab, seat, date, timeSlot, timeSlots, anonymous } = req.body;
         const user = req.session.user;
+
+        // Normalize to an array of slots (supports both single and multi)
+        const slots = timeSlots && Array.isArray(timeSlots) && timeSlots.length > 0
+            ? timeSlots
+            : (timeSlot ? [timeSlot] : []);
 
         // Back-end validation
         if (!lab || !lab.trim()) {
@@ -121,15 +129,14 @@ const create = async (req, res) => {
         if (reserveDate < today) {
             return res.status(400).json({ error: 'Cannot reserve for a past date.' });
         }
-        // Check max 7 days in advance
         const maxDate = new Date();
         maxDate.setDate(maxDate.getDate() + 7);
         maxDate.setHours(23, 59, 59, 999);
         if (reserveDate > maxDate) {
             return res.status(400).json({ error: 'Cannot reserve more than 7 days in advance.' });
         }
-        if (!timeSlot || !timeSlot.trim()) {
-            return res.status(400).json({ error: 'Time slot is required.' });
+        if (slots.length === 0) {
+            return res.status(400).json({ error: 'At least one time slot is required.' });
         }
 
         // Look up lab info to get building name
@@ -138,33 +145,47 @@ const create = async (req, res) => {
             return res.status(404).json({ error: 'Lab not found' });
         }
 
-        // Check for double-booking (same lab, seat, date, and timeSlot that is STILL upcoming)
-        const existingReservation = await Reservation.findOne({
+        // Check for double-booking: find any existing reservation whose timeSlots overlap
+        const startOfDay = new Date(date);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(date);
+        endOfDay.setHours(23, 59, 59, 999);
+        const conflicting = await Reservation.findOne({
             lab,
             seat,
-            date,
-            timeSlot,
+            date: { $gte: startOfDay, $lte: endOfDay },
+            timeSlots: { $in: slots },
             status: 'upcoming'
         });
 
-        if (existingReservation) {
-            return res.status(400).json({ error: 'This seat is already reserved for the selected time slot.' });
+        if (conflicting) {
+            const overlap = conflicting.timeSlots.filter(s => slots.includes(s));
+            return res.status(400).json({
+                error: 'Seat ' + seat + ' is already reserved for "' + overlap[0] + '". Please deselect that slot.'
+            });
         }
 
-        // Create new Reservation
+        // Create ONE reservation with all selected time slots
         const newReservation = new Reservation({
             user: user._id,
             lab: lab,
-            building: labInfo.building, // Pulled from the Lab lookup
+            building: labInfo.building,
             seat,
             date,
-            timeSlot,
+            timeSlots: slots,
             isAnonymous: anonymous || false,
             status: 'upcoming'
         });
 
         await newReservation.save();
-        return res.status(201).json({ success: true, reservation: newReservation });
+
+        // Send email notification
+        const fullUser = await User.findById(user._id).select('firstName email notifications').lean();
+        if (fullUser) {
+            emailService.notifyReservationCreated(fullUser, newReservation).catch(() => {});
+        }
+
+        return res.status(201).json({ success: true, count: slots.length, reservation: newReservation });
     } catch (error) {
         console.error('Error creating reservation:', error);
         return res.status(500).json({ error: 'Internal server error' });
@@ -174,7 +195,7 @@ const create = async (req, res) => {
 // 5. update(req, res)
 const update = async (req, res) => {
     try {
-        const { seat, date, timeSlot, anonymous } = req.body;
+        const { seat, date, timeSlot, timeSlots, anonymous } = req.body;
         const user = req.session.user;
 
         const reservation = await Reservation.findById(req.params.id);
@@ -192,10 +213,22 @@ const update = async (req, res) => {
         // Update allowed fields
         if (seat) reservation.seat = seat;
         if (date) reservation.date = date;
-        if (timeSlot) reservation.timeSlot = timeSlot;
+        // Support both single and array
+        if (timeSlots && Array.isArray(timeSlots) && timeSlots.length > 0) {
+            reservation.timeSlots = timeSlots;
+        } else if (timeSlot) {
+            reservation.timeSlots = [timeSlot];
+        }
         if (anonymous !== undefined) reservation.isAnonymous = anonymous;
 
         await reservation.save();
+
+        // Send email notification
+        const resOwner = await User.findById(reservation.user).select('firstName email notifications').lean();
+        if (resOwner) {
+            emailService.notifyReservationUpdated(resOwner, reservation).catch(() => {});
+        }
+
         return res.json({ success: true, reservation });
     } catch (error) {
         console.error(`Error updating reservation ${req.params.id}:`, error);
@@ -224,6 +257,12 @@ const cancel = async (req, res) => {
         // Set status to cancelled
         reservation.status = 'cancelled';
         await reservation.save();
+
+        // Send email notification
+        const cancelledOwner = await User.findById(reservation.user).select('firstName email notifications').lean();
+        if (cancelledOwner) {
+            emailService.notifyReservationCancelled(cancelledOwner, reservation).catch(() => {});
+        }
 
         return res.json({ success: true, reservation });
     } catch (error) {

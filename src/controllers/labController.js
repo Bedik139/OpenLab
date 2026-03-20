@@ -94,14 +94,16 @@ const getSeats = async (req, res) => {
         // Build the query to find reservations
         let reservationQuery = { lab: labCode, status: 'upcoming' };
         
-        // Optional filters from query params
+        // Optional date filter — use a range to match the full day
         if (date) {
-            // Depending on how your teammate Chrisander set up the Date schema, 
-            // you might need to adjust this to match string vs Date object formats.
-            reservationQuery.date = date; 
+            const startOfDay = new Date(date);
+            startOfDay.setHours(0, 0, 0, 0);
+            const endOfDay = new Date(date);
+            endOfDay.setHours(23, 59, 59, 999);
+            reservationQuery.date = { $gte: startOfDay, $lte: endOfDay };
         }
         if (timeSlot) {
-            reservationQuery.timeSlot = timeSlot;
+            reservationQuery.timeSlots = timeSlot;  // matches if timeSlots array contains this value
         }
 
         // Fetch reservations and populate the user details for the tooltip

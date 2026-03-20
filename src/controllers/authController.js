@@ -45,6 +45,7 @@
 
 // 1. Import User model
 const User = require('../models/User');
+const Reservation = require('../models/Reservation');
 
 // 2. login(req, res)
 const login = async (req, res) => {
@@ -91,7 +92,8 @@ const login = async (req, res) => {
             accountType: user.accountType,
             bio: user.bio,
             avatarUrl: user.avatarUrl,
-            avatarClass: user.avatarClass
+            avatarClass: user.avatarClass,
+            notifications: user.notifications
         };
 
         // Handle "Remember Me" — extend cookie to 3 weeks
@@ -99,6 +101,14 @@ const login = async (req, res) => {
         if (rememberMe) {
             req.session.cookie.maxAge = 1000 * 60 * 60 * 24 * 21; // 3 weeks
         }
+
+        // Mark past "upcoming" reservations as "completed" on login
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        await Reservation.updateMany(
+            { user: user._id, status: 'upcoming', date: { $lt: today } },
+            { $set: { status: 'completed' } }
+        );
 
         // Return success
         return res.json({ success: true, user: req.session.user });
@@ -135,7 +145,7 @@ const register = async (req, res) => {
             return res.status(400).json({ error: 'Password must be at least 8 characters long.' });
         }
         const validColleges = ['CCS', 'CLA', 'COB', 'COE', 'COS', 'GCOE', 'SOE', 'BAGCED'];
-        if (!college || !validColleges.includes(college)) {
+        if (accountType !== 'technician' && (!college || !validColleges.includes(college))) {
             return res.status(400).json({ error: 'Please select a valid college.' });
         }
         const validAccountTypes = ['student', 'technician'];
@@ -182,7 +192,8 @@ const register = async (req, res) => {
             accountType: user.accountType,
             bio: user.bio,
             avatarUrl: user.avatarUrl,
-            avatarClass: user.avatarClass
+            avatarClass: user.avatarClass,
+            notifications: user.notifications
         };
 
         return res.status(201).json({ success: true, user: req.session.user });

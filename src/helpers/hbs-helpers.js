@@ -105,5 +105,16 @@ module.exports = {
   /** Lowercase helper */
   lowercase: function (str) {
     return str ? str.toLowerCase() : '';
+  },
+
+  /** Format timeSlots array for display.
+   *  Single slot: "7:00 AM - 7:30 AM"
+   *  Multiple slots: "7:00 AM - 8:30 AM (3 slots)" */
+  formatTimeSlots: function (slots) {
+    if (!slots || !Array.isArray(slots) || slots.length === 0) return '-';
+    if (slots.length === 1) return slots[0];
+    var first = slots[0].split(' - ')[0];
+    var last = slots[slots.length - 1].split(' - ')[1];
+    return first + ' - ' + last + ' (' + slots.length + ' slots)';
   }
 };

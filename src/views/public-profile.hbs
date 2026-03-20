@@ -2,15 +2,20 @@
 {{#if profileUser}}
 <div class="profile-header">
   <div class="avatar-section">
-    <div class="avatar"><span>{{getInitials profileUser.firstName profileUser.lastName}}</span></div>
+    <div class="avatar">
+      {{#if profileUser.avatarUrl}}
+        <img src="{{profileUser.avatarUrl}}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">
+      {{else}}
+        <span>{{getInitials profileUser.firstName profileUser.lastName}}</span>
+      {{/if}}
+    </div>
   </div>
   <div class="header-info">
     <h1>{{profileUser.firstName}} {{profileUser.lastName}}</h1>
     <p class="email">{{profileUser.email}}</p>
     <div class="badges">
-      <span class="badge student">Student</span>
+      <span class="badge student">{{#if (eq profileUser.accountType "technician")}}Technician{{else}}Student{{/if}}</span>
       <span class="badge college">{{profileUser.college}}</span>
-      <span class="badge active">Active</span>
     </div>
     {{#if profileUser.bio}}
     <p class="bio">{{profileUser.bio}}</p>
@@ -18,37 +23,24 @@
   </div>
 </div>
 
-{{!-- Current Reservations --}}
+{{!-- Current Reservations (non-anonymous only) --}}
 <div class="profile-card">
   <div class="card-header"><h3>Current Reservations</h3></div>
   <div class="settings-list">
-    {{#if reservations.length}}
-      {{#each reservations}}
+    {{#each reservations}}
       <div class="setting-item">
         <div class="setting-info">
           <h4>{{this.lab}} - Seat {{this.seat}}</h4>
-          <p>{{formatDate this.date}} | {{this.timeSlot}}</p>
+          <p>{{formatDate this.date}} | {{formatTimeSlots this.timeSlots}}</p>
         </div>
+        <span class="status-badge upcoming">Upcoming</span>
       </div>
-      {{/each}}
     {{else}}
       <div class="setting-item">
         <div class="setting-info"><p>No current reservations</p></div>
       </div>
-    {{/if}}
+    {{/each}}
   </div>
-</div>
-
-{{!-- Statistics --}}
-<div class="profile-card stats-card">
-  <div class="card-header"><h3>Statistics</h3></div>
-  <div class="stats-grid">
-    <div class="stat-item"><span class="stat-value">{{profileStats.totalSessions}}</span><span class="stat-label">Total Sessions</span></div>
-    <div class="stat-item"><span class="stat-value">{{profileStats.completed}}</span><span class="stat-label">Completed</span></div>
-    <div class="stat-item"><span class="stat-value">{{profileStats.cancelled}}</span><span class="stat-label">Cancelled</span></div>
-    <div class="stat-item"><span class="stat-value">{{profileStats.hoursUsed}}</span><span class="stat-label">Hours Used</span></div>
-  </div>
-  <div class="member-since"><p>Member since <strong>{{profileStats.memberSince}}</strong></p></div>
 </div>
 
 {{else}}

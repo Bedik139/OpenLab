@@ -27,7 +27,7 @@
       <div class="reservation-main">
         <h3>{{this.lab}} - Seat {{this.seat}}</h3>
         <p class="location">{{this.building}}</p>
-        <div class="time-slot"><span class="time">{{this.timeSlot}}</span></div>
+        <div class="time-slot"><span class="time">{{formatTimeSlots this.timeSlots}}</span></div>
       </div>
       <div class="reservation-meta">
         <span class="status-badge {{this.status}}">{{capitalize this.status}}</span>
@@ -50,6 +50,11 @@
         <button class="action-btn rebook">Book Again</button>
       {{/if}}
     </div>
+  </div>
+  {{else}}
+  <div class="empty-state">
+    <p>No reservations yet</p>
+    <a href="/cmpslots">Book your first slot</a>
   </div>
   {{/each}}
 </div>

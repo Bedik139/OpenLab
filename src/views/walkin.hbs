@@ -1,76 +1,98 @@
-{{!-- Walk-In Reservation page (technician only) --}}
+{{!-- Walk-In Reservation page (technician only) - same UI as reserve --}}
 <div class="page-header">
   <h1>Walk-In Reservation</h1>
-  <p>Lab technicians: Reserve a seat for a walk-in student</p>
+  <p>Reserve a seat on behalf of a walk-in student</p>
 </div>
 
 <div class="reserve-layout">
-  {{!-- Left Column: Walk-In Form --}}
+  {{!-- Left Column: Seat Selection --}}
   <div class="seat-selection-panel">
     <div class="panel-card">
-      <div class="panel-header"><h3>Walk-In Student Details</h3></div>
-      <form class="walkin-form">
-        <div class="time-selection">
-          <label for="walkinStudentId">Student ID</label>
-          <div class="time-row">
-            <input type="text" id="walkinStudentId" placeholder="Enter 8-digit student ID" pattern="[0-9]{8}" required>
-          </div>
+      <div class="panel-header">
+        <h3>{{lab.code}} - {{lab.building}}</h3>
+        <span class="availability-badge">{{lab.available}} seats available</span>
+      </div>
+
+      {{!-- Time Selection --}}
+      <div class="time-selection">
+        <label>Select Date</label>
+        <div class="time-row">
+          <input type="date" id="reserveDate" value="{{today}}" min="{{today}}" max="{{maxDate}}">
         </div>
-        <div class="time-selection">
-          <label for="walkinLab">Select Lab</label>
-          <div class="time-row">
-            <select id="walkinLab" required>
-              <option value="" disabled selected>Choose a lab</option>
-              {{#each labs}}
-              <option value="{{this.code}}">{{this.code}} - {{this.building}}</option>
-              {{/each}}
-            </select>
-          </div>
+      </div>
+      <div class="time-selection">
+        <label>Select Time Slots <span class="slot-count-label" id="slotCountLabel">(0 selected)</span></label>
+        <div class="timeslot-grid" id="timeslotGrid">
+          {{#each timeSlots}}
+          <label class="timeslot-chip{{#if this.disabled}} disabled{{/if}}" data-value="{{this.label}}" data-slot-value="{{this.value}}">
+            <input type="checkbox" name="timeSlots" value="{{this.label}}"{{#if this.disabled}} disabled{{/if}}>
+            <span class="chip-text">{{this.label}}</span>
+          </label>
+          {{/each}}
         </div>
-        <div class="time-selection">
-          <label for="walkinSeat">Seat Number</label>
-          <div class="time-row">
-            <input type="text" id="walkinSeat" placeholder="e.g., A1, B5, C10" required>
-          </div>
+      </div>
+
+      {{!-- Seat Map --}}
+      <div class="seat-map-container">
+        <div class="instructor-desk"><span>Instructor's Desk</span></div>
+        <div class="seat-grid" data-lab="{{lab.code}}" data-cols="{{lab.cols}}">
+          {{#each seats}}
+          <div class="seat {{this.status}}" data-seat="{{this.id}}" title="{{this.tooltip}}">{{this.id}}</div>
+          {{#if this.gapAfter}}<div class="seat-gap"></div>{{/if}}
+          {{/each}}
         </div>
-        <div class="time-selection">
-          <label>Date & Time Slot</label>
-          <div class="time-row">
-            <input type="date" id="walkinDate" value="{{today}}">
-            <select id="walkinTime">
-              {{#each timeSlots}}
-              <option value="{{this.value}}"{{#if (eq this.value "09:00")}} selected{{/if}}>{{this.label}}</option>
-              {{/each}}
-            </select>
-          </div>
+
+        {{!-- Legend --}}
+        <div class="seat-legend">
+          <div class="legend-item"><span class="legend-seat available"></span><span>Available</span></div>
+          <div class="legend-item"><span class="legend-seat occupied"></span><span>Occupied</span></div>
+          <div class="legend-item"><span class="legend-seat reserved"></span><span>Reserved</span></div>
+          <div class="legend-item"><span class="legend-seat selected"></span><span>Selected</span></div>
         </div>
-        <button type="submit" class="confirm-btn">Reserve for Student</button>
-      </form>
+      </div>
     </div>
   </div>
 
-  {{!-- Right Column: Current Walk-In Reservations --}}
+  {{!-- Right Column: Booking Summary --}}
   <div class="booking-summary-panel">
     <div class="panel-card summary-card">
-      <h3>Current Walk-In Reservations</h3>
-      <div class="summary-item"><p>Remove no-show students or manage walk-in reservations</p></div>
+      <h3>Walk-In Summary</h3>
       <div class="summary-details">
-        {{#if walkinReservations.length}}
-          {{#each walkinReservations}}
-          <div class="walkin-reservation-item" data-reservation-id="{{this._id}}">
-            <div class="summary-item">
-              <span class="label">{{this.lab}} - Seat {{this.seat}}</span>
-              <span class="value">{{this.timeSlot}} - {{this.studentName}} ({{this.studentId}})</span>
-            </div>
-            <button class="remove-btn">Remove No-Show</button>
-          </div>
-          {{#unless @last}}<div class="divider"></div>{{/unless}}
-          {{/each}}
-        {{else}}
-          <div class="summary-item" style="text-align:center;color:#666;"><p>No current walk-in reservations</p></div>
-        {{/if}}
+        <div class="summary-item"><span class="label">Lab</span><span class="value">{{lab.code}}</span></div>
+        <div class="summary-item"><span class="label">Building</span><span class="value">{{lab.building}}</span></div>
+        <div class="summary-item"><span class="label">Date</span><span class="value" id="summaryDate">{{summaryDate}}</span></div>
+        <div class="summary-item"><span class="label">Time Slots</span><span class="value" id="summaryTime">-</span></div>
+        <div class="summary-item"><span class="label">Duration</span><span class="value" id="summaryDuration">-</span></div>
+        <div class="summary-item"><span class="label">Selected Seat</span><span class="value" id="summarySeat">-</span></div>
       </div>
-      <a href="/dashboard" class="back-link">Back to Dashboard</a>
+      <div class="divider"></div>
+      <div class="rules-section">
+        <h4>Walk-In Rules</h4>
+        <ul>
+          <li>Each slot is 30 minutes</li>
+          <li>Reservation is made under the technician's name</li>
+          <li>No-shows can be removed within 10 minutes</li>
+        </ul>
+      </div>
+      <button class="confirm-btn" id="walkinConfirmBtn" disabled data-lab="{{lab.code}}">
+        Select a Seat to Continue
+      </button>
+      <a href="/walkin" class="back-link">Back to Lab Selection</a>
     </div>
+
+    {{!-- Technician Info Card --}}
+    {{#if user}}
+    <div class="panel-card user-card">
+      <h4>Reserving as</h4>
+      <div class="user-info">
+        <div class="user-avatar">{{getInitials user.firstName user.lastName}}</div>
+        <div class="user-details">
+          <span class="user-name">{{user.firstName}} {{user.lastName}}</span>
+          <span class="user-id">ID: {{user.studentId}}</span>
+          <span class="user-college">{{user.college}}</span>
+        </div>
+      </div>
+    </div>
+    {{/if}}
   </div>
 </div>

@@ -20,6 +20,23 @@ function formatDateLong(dateStr) {
 
 
 // =============================================================================
+// BACKGROUND SLIDESHOW (index, login, register pages)
+// =============================================================================
+
+function initBgSlideshow() {
+  var $slides = $('.bg-slide');
+  if ($slides.length < 2) return;
+
+  var current = 0;
+  setInterval(function() {
+    $slides.eq(current).removeClass('active');
+    current = (current + 1) % $slides.length;
+    $slides.eq(current).addClass('active');
+  }, 5000);
+}
+
+
+// =============================================================================
 // LOGIN PAGE
 // =============================================================================
 
@@ -241,25 +258,144 @@ function initSeatSelection() {
   var $grid = $('.seat-grid');
   if (!$grid.length) return;
 
-  // Seat click handler
+  // --- Helper: get all selected time slot labels ---
+  function getSelectedSlots() {
+    var slots = [];
+    $('#timeslotGrid input:checked').each(function() {
+      slots.push($(this).val());
+    });
+    return slots;
+  }
+
+  // --- Helper: update the booking summary ---
+  function updateSummary() {
+    var slots = getSelectedSlots();
+    var seat = $('.seat.selected').attr('data-seat');
+    var count = slots.length;
+
+    // Slot count label
+    $('#slotCountLabel').text('(' + count + ' selected)');
+
+    // Summary time
+    if (count === 0) {
+      $('#summaryTime').text('-');
+      $('#summaryDuration').text('-');
+    } else if (count === 1) {
+      $('#summaryTime').text(slots[0]);
+      $('#summaryDuration').text('30 min');
+    } else {
+      // Show first and last
+      $('#summaryTime').text(slots[0].split(' - ')[0] + ' - ' + slots[count - 1].split(' - ')[1]);
+      $('#summaryDuration').text((count * 30) + ' min (' + count + ' slots)');
+    }
+
+    // Enable confirm only if seat + at least 1 slot selected
+    var canConfirm = seat && count > 0;
+    var editId = $('#confirmBtn').data('edit-id');
+    $('#confirmBtn').prop('disabled', !canConfirm)
+      .text(canConfirm
+        ? (editId ? 'Update Reservation' : 'Confirm ' + count + ' Slot' + (count > 1 ? 's' : ''))
+        : (seat ? 'Select Time Slots' : 'Select a Seat to Continue'));
+  }
+
+  // --- Time slot chip click (auto-fill consecutive slots) ---
+  $('#timeslotGrid').on('change', 'input[type="checkbox"]', function() {
+    var $allChips = $('#timeslotGrid .timeslot-chip').not('.disabled');
+    var clickedIndex = $allChips.index($(this).closest('.timeslot-chip'));
+
+    if (this.checked) {
+      // Find the indices of all currently checked (enabled) slots
+      var checkedIndices = [];
+      $allChips.each(function(i) {
+        if ($(this).find('input').is(':checked')) checkedIndices.push(i);
+      });
+
+      if (checkedIndices.length > 1) {
+        // Auto-fill: select all slots between the min and max checked index
+        var minIdx = Math.min.apply(null, checkedIndices);
+        var maxIdx = Math.max.apply(null, checkedIndices);
+        $allChips.each(function(i) {
+          if (i >= minIdx && i <= maxIdx) {
+            $(this).addClass('active');
+            $(this).find('input').prop('checked', true);
+          }
+        });
+      } else {
+        $(this).closest('.timeslot-chip').addClass('active');
+      }
+    } else {
+      // When unchecking, clear all slots after this one to keep it consecutive
+      var uncheckFrom = clickedIndex;
+      $allChips.each(function(i) {
+        if (i >= uncheckFrom) {
+          $(this).removeClass('active');
+          $(this).find('input').prop('checked', false);
+        }
+      });
+    }
+    updateSummary();
+    refreshAvailability();
+  });
+
+  // Mark initially selected chips (edit mode)
+  $('#timeslotGrid input:checked').each(function() {
+    $(this).closest('.timeslot-chip').addClass('active');
+  });
+
+  // --- Seat click handler ---
   $grid.on('click', '.seat.available', function() {
     $('.seat.selected').removeClass('selected').addClass('available');
     $(this).removeClass('available').addClass('selected');
     var seatId = $(this).attr('data-seat');
     $('#summarySeat').text(seatId);
-    $('#confirmBtn').prop('disabled', false).text('Confirm Reservation');
+    updateSummary();
   });
 
-  // Date/time sync
+  // --- Helper: disable past timeslots if selected date is today ---
+  function updateTimeslotAvailability() {
+    var selectedDate = $('#reserveDate').val();
+    var today = new Date().toISOString().split('T')[0];
+
+    if (selectedDate === today) {
+      var now = new Date();
+      var currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+      $('#timeslotGrid .timeslot-chip').each(function() {
+        var slotValue = $(this).attr('data-slot-value');
+        if (!slotValue) return;
+        // Parse end time from value like "07:00 - 07:30"
+        var endPart = slotValue.split(' - ')[1];
+        var parts = endPart.split(':');
+        var endMinutes = parseInt(parts[0]) * 60 + parseInt(parts[1]);
+
+        if (currentMinutes >= endMinutes) {
+          $(this).addClass('disabled');
+          $(this).find('input').prop('disabled', true).prop('checked', false);
+          $(this).removeClass('active');
+        } else {
+          $(this).removeClass('disabled');
+          $(this).find('input').prop('disabled', false);
+        }
+      });
+    } else {
+      // Future date: enable all timeslots
+      $('#timeslotGrid .timeslot-chip').each(function() {
+        $(this).removeClass('disabled');
+        $(this).find('input').prop('disabled', false);
+      });
+    }
+    updateSummary();
+  }
+
+  // --- Date change ---
   $('#reserveDate').on('change', function() {
     var val = $(this).val();
     if (val) $('#summaryDate').text(formatDateLong(val));
-  });
-  $('#timeSlot').on('change', function() {
-    $('#summaryTime').text($(this).find('option:selected').text());
+    updateTimeslotAvailability();
+    refreshAvailability();
   });
 
-  // Anonymous toggle
+  // --- Anonymous toggle ---
   $('#anonymousToggle').on('change', function() {
     var isAnon = $(this).is(':checked');
     var $status = $('#summaryAnonStatus');
@@ -273,7 +409,7 @@ function initSeatSelection() {
     $status.find('.value').text(isAnon ? 'Anonymous' : 'Public');
   });
 
-  // Pre-select seat if editing
+  // --- Pre-select seat if editing ---
   var $confirmBtn = $('#confirmBtn');
   var editId = $confirmBtn.data('edit-id');
   if (editId) {
@@ -282,44 +418,71 @@ function initSeatSelection() {
       var $editSeat = $('.seat[data-seat="' + editSeat + '"]');
       if ($editSeat.length && !$editSeat.hasClass('occupied')) {
         $editSeat.removeClass('available reserved').addClass('selected');
-        $confirmBtn.prop('disabled', false).text('Update Reservation');
       }
     }
+    updateSummary();
   }
 
-  // Confirm/Update reservation
+  // --- Confirm / Update reservation ---
   $confirmBtn.on('click', function() {
+    if (!window.isLoggedIn) {
+      alert('Please log in first to make a reservation.');
+      window.location.href = '/login';
+      return;
+    }
     var labCode = $(this).data('lab');
     var seat = $('.seat.selected').attr('data-seat');
     if (!seat) { alert('Please select a seat.'); return; }
 
     var date = $('#reserveDate').val();
-    var timeSlot = $('#timeSlot option:selected').text();
+    var timeSlots = getSelectedSlots();
     var anonymous = $('#anonymousToggle').is(':checked');
 
     if (!date) { alert('Please select a date.'); return; }
     var today = new Date().toISOString().split('T')[0];
     if (date < today) { alert('Please select today or a future date.'); return; }
-    if (!timeSlot || timeSlot === 'Select a time slot') { alert('Please select a time slot.'); return; }
+    if (timeSlots.length === 0) { alert('Please select at least one time slot.'); return; }
 
-    var url = editId ? '/api/reservations/' + editId : '/api/reservations';
-    var method = editId ? 'PUT' : 'POST';
+    // Edit mode: update single reservation
+    if (editId) {
+      fetch('/api/reservations/' + editId, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lab: labCode, seat: seat, date: date,
+          timeSlots: timeSlots, anonymous: anonymous
+        })
+      })
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
+        if (data.success) {
+          alert('Reservation updated for Seat ' + seat + ' at ' + labCode + '!');
+          window.location.href = '/reservations';
+        } else {
+          alert(data.error || 'Failed to update reservation.');
+        }
+      })
+      .catch(function() { alert('Failed to update reservation.'); });
+      return;
+    }
 
-    fetch(url, {
-      method: method,
+    // New reservation: send array of time slots
+    fetch('/api/reservations', {
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         lab: labCode,
         seat: seat,
         date: date,
-        timeSlot: timeSlot,
+        timeSlots: timeSlots,
         anonymous: anonymous
       })
     })
     .then(function(res) { return res.json(); })
     .then(function(data) {
       if (data.success) {
-        alert((editId ? 'Reservation updated' : 'Reservation confirmed') + ' for Seat ' + seat + ' at ' + labCode + '!');
+        var count = data.count || timeSlots.length;
+        alert('Reserved ' + count + ' slot' + (count > 1 ? 's' : '') + ' for Seat ' + seat + ' at ' + labCode + '!');
         window.location.href = '/reservations';
       } else {
         alert(data.error || 'Failed to save reservation.');
@@ -330,31 +493,75 @@ function initSeatSelection() {
     });
   });
 
-  // Poll availability from server every 30 seconds
+  // --- Refresh seat availability across all selected time slots ---
   function refreshAvailability() {
     var labCode = $('#confirmBtn').data('lab');
     var date = $('#reserveDate').val();
-    var timeSlot = $('#timeSlot option:selected').text();
-    if (!labCode || !date || !timeSlot) return;
+    var slots = getSelectedSlots();
+    if (!labCode || !date) return;
 
-    fetch('/api/labs/' + encodeURIComponent(labCode) + '/seats?date=' + date + '&timeSlot=' + encodeURIComponent(timeSlot))
-    .then(function(res) { return res.json(); })
-    .then(function(data) {
-      if (data && data.seats) {
-        var availableCount = 0;
-        data.seats.forEach(function(seat) {
-          var $seatEl = $('.seat[data-seat="' + seat.id + '"]');
-          if (!$seatEl.hasClass('selected')) {
-            $seatEl.removeClass('available occupied reserved').addClass(seat.status);
+    // If no slots selected, just show all as available (based on initial state)
+    if (slots.length === 0) {
+      $('.seat').each(function() {
+        if (!$(this).hasClass('selected')) {
+          $(this).removeClass('occupied reserved').addClass('available');
+          $(this).attr('title', $(this).attr('data-seat') + ' - Available');
+        }
+      });
+      var totalSeats = $('.seat').length;
+      $('.availability-badge').text(totalSeats + ' seats available');
+      return;
+    }
+
+    // Clear selection when filters change
+    $('.seat.selected').removeClass('selected').addClass('available');
+    $('#summarySeat').text('-');
+    updateSummary();
+
+    // Fetch availability for each selected slot, merge results
+    var fetches = slots.map(function(slot) {
+      return fetch('/api/labs/' + encodeURIComponent(labCode) + '/seats?date=' + date + '&timeSlot=' + encodeURIComponent(slot))
+        .then(function(res) { return res.json(); });
+    });
+
+    Promise.all(fetches).then(function(results) {
+      // A seat is only available if it's available in ALL selected slots
+      var seatStatus = {};
+      var seatTooltip = {};
+      results.forEach(function(resp) {
+        var seats = (resp && resp.data && resp.data.seats) || (resp && resp.seats) || [];
+        seats.forEach(function(seat) {
+          if (!seatStatus[seat.id]) {
+            seatStatus[seat.id] = 'available';
+            seatTooltip[seat.id] = seat.id + ' - Available';
           }
-          if (seat.status === 'available') availableCount++;
+          if (seat.status !== 'available') {
+            seatStatus[seat.id] = seat.status;
+            if (seat.occupant) {
+              seatTooltip[seat.id] = seat.id + ' - Reserved by ' + seat.occupant;
+            } else {
+              seatTooltip[seat.id] = seat.id + ' - Reserved';
+            }
+          }
         });
-        $('.availability-badge').text(availableCount + ' seats available');
-      }
-    })
-    .catch(function() { /* silently fail on poll */ });
+      });
+
+      var availableCount = 0;
+      $('.seat').each(function() {
+        var id = $(this).attr('data-seat');
+        var status = seatStatus[id] || 'available';
+        $(this).removeClass('available occupied reserved selected').addClass(status);
+        $(this).attr('title', seatTooltip[id] || id);
+        if (status === 'available') availableCount++;
+      });
+      $('.availability-badge').text(availableCount + ' seats available');
+    }).catch(function() { /* silently fail */ });
   }
   setInterval(refreshAvailability, 30000);
+
+  // Initial timeslot availability check and summary update
+  updateTimeslotAvailability();
+  updateSummary();
 }
 
 
@@ -374,7 +581,11 @@ function initReservationsPage() {
 
     $('.reservation-card').each(function() {
       var status = $(this).data('status');
-      $(this).toggle(filter === 'all' || status === filter);
+      if (filter === 'all' || status === filter) {
+        $(this).removeClass('filter-hidden');
+      } else {
+        $(this).addClass('filter-hidden');
+      }
     });
 
     if (typeof window.refreshPagination === 'function') {
@@ -442,12 +653,62 @@ function initLabFilters() {
     gokongwei: 'gokongwei building'
   };
 
+  // Set default date to today
+  var today = new Date().toISOString().split('T')[0];
+  if (!$('#dateFilter').val()) $('#dateFilter').val(today);
+
   $filterBtn.on('click', function() {
-    var selected = $('#buildingFilter').val();
+    var selectedBuilding = $('#buildingFilter').val();
+    var selectedDate = $('#dateFilter').val();
+    var selectedTime = $('#timeFilter option:selected').text();
+    var hasTimeFilter = $('#timeFilter').val() !== '';
+
+    // For each lab card, fetch real-time availability if date/time selected
     $('.lab-card').each(function() {
-      var cardBuilding = $(this).find('.building-tag').text().trim().toLowerCase();
-      if (!selected) { $(this).show(); return; }
-      $(this).toggle(cardBuilding === buildingMap[selected]);
+      var $card = $(this);
+      var labCode = $card.data('lab');
+      var cardBuilding = $card.find('.building-tag').text().trim().toLowerCase();
+
+      // Building filter
+      if (selectedBuilding && cardBuilding !== buildingMap[selectedBuilding]) {
+        $card.hide();
+        return;
+      }
+      $card.show();
+
+      // Date/time availability filter — fetch from API
+      if (selectedDate && hasTimeFilter) {
+        fetch('/api/labs/' + encodeURIComponent(labCode) + '/seats?date=' + selectedDate + '&timeSlot=' + encodeURIComponent(selectedTime))
+        .then(function(res) { return res.json(); })
+        .then(function(resp) {
+          var seats = (resp && resp.data && resp.data.seats) || [];
+          var available = 0;
+          var occupied = 0;
+          seats.forEach(function(s) {
+            if (s.status === 'available') available++;
+            else occupied++;
+          });
+          $card.find('.stat-number.available').text(available);
+          $card.find('.stat-number.occupied').text(occupied);
+        })
+        .catch(function() {});
+      } else if (selectedDate) {
+        // Date only — count all reservations for that date
+        fetch('/api/labs/' + encodeURIComponent(labCode) + '/seats?date=' + selectedDate)
+        .then(function(res) { return res.json(); })
+        .then(function(resp) {
+          var seats = (resp && resp.data && resp.data.seats) || [];
+          var available = 0;
+          var occupied = 0;
+          seats.forEach(function(s) {
+            if (s.status === 'available') available++;
+            else occupied++;
+          });
+          $card.find('.stat-number.available').text(available);
+          $card.find('.stat-number.occupied').text(occupied);
+        })
+        .catch(function() {});
+      }
     });
   });
 }
@@ -548,6 +809,23 @@ function initProfilePage() {
     window.location.href = '/changepassword';
   });
 
+  // Notifications toggle
+  $('#notificationsToggle').on('change', function() {
+    var enabled = $(this).is(':checked');
+    fetch('/api/profile/notifications', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ notifications: enabled })
+    })
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+      if (!data.success) {
+        alert(data.error || 'Failed to update notification settings.');
+      }
+    })
+    .catch(function() { alert('Failed to update notification settings.'); });
+  });
+
   // Avatar upload
   var $fileInput = $('<input>', { type: 'file', accept: 'image/png, image/jpeg, image/gif', style: 'display:none' }).appendTo('body');
   $('.change-avatar-btn').on('click', function() { $fileInput.click(); });
@@ -558,9 +836,21 @@ function initProfilePage() {
     var reader = new FileReader();
     reader.onload = function(e) {
       var dataUrl = e.target.result;
-      var $img = $('<img>').attr({ src: dataUrl, style: 'width:100%;height:100%;border-radius:50%;object-fit:cover;' });
-      $('.avatar').empty().append($img);
-      // TODO (Ivan): POST avatar to /api/profile/avatar when endpoint is ready
+      fetch('/api/profile/avatar', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ avatarUrl: dataUrl })
+      })
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
+        if (data.success) {
+          var $img = $('<img>').attr({ src: dataUrl, style: 'width:100%;height:100%;border-radius:50%;object-fit:cover;' });
+          $('.avatar').empty().append($img);
+        } else {
+          alert(data.error || 'Failed to upload avatar.');
+        }
+      })
+      .catch(function() { alert('Failed to upload avatar.'); });
     };
     reader.readAsDataURL(file);
   });
@@ -641,7 +931,11 @@ function initUserSearch() {
       var college = $card.find('.college-badge').text();
       var matchesSearch = name.indexOf(searchTerm) > -1 || studentId.indexOf(searchTerm) > -1;
       var matchesCollege = selectedCollege === '' || college === selectedCollege;
-      $card.toggle(matchesSearch && matchesCollege);
+      if (matchesSearch && matchesCollege) {
+        $card.removeClass('filter-hidden');
+      } else {
+        $card.addClass('filter-hidden');
+      }
     });
 
     if (typeof window.refreshPagination === 'function') {
@@ -662,66 +956,159 @@ function initUserSearch() {
 // =============================================================================
 
 function initWalkInPage() {
-  var $form = $('.walkin-form');
-  if (!$form.length) return;
+  var $confirmBtn = $('#walkinConfirmBtn');
+  if (!$confirmBtn.length) return;
 
-  $form.on('submit', function(e) {
-    e.preventDefault();
-    var studentId = $('#walkinStudentId').val().trim();
-    var lab = $('#walkinLab').val();
-    var seat = $('#walkinSeat').val().trim().toUpperCase();
-    var date = $('#walkinDate').val();
-    var timeSlot = $('#walkinTime option:selected').text();
+  // --- Helper: get all selected time slot labels ---
+  function getSelectedSlots() {
+    var slots = [];
+    $('#timeslotGrid input:checked').each(function() {
+      slots.push($(this).val());
+    });
+    return slots;
+  }
 
-    if (!/^[0-9]{8}$/.test(studentId)) {
-      alert('Student ID must be exactly 8 digits.'); $('#walkinStudentId').focus(); return;
+  // --- Helper: update the booking summary ---
+  function updateSummary() {
+    var slots = getSelectedSlots();
+    var seat = $('.seat.selected').attr('data-seat');
+    var count = slots.length;
+
+    $('#slotCountLabel').text('(' + count + ' selected)');
+
+    if (count === 0) {
+      $('#summaryTime').text('-');
+      $('#summaryDuration').text('-');
+    } else if (count === 1) {
+      $('#summaryTime').text(slots[0]);
+      $('#summaryDuration').text('30 min');
+    } else {
+      $('#summaryTime').text(slots[0].split(' - ')[0] + ' - ' + slots[count - 1].split(' - ')[1]);
+      $('#summaryDuration').text((count * 30) + ' min (' + count + ' slots)');
     }
-    if (!lab) { alert('Please select a lab.'); $('#walkinLab').focus(); return; }
-    if (!seat) { alert('Please enter a seat number.'); $('#walkinSeat').focus(); return; }
-    if (!/^[A-Z][0-9]{1,2}$/i.test(seat)) {
-      alert('Seat must be in format like A1, B5, or C10.'); $('#walkinSeat').focus(); return;
+
+    var canConfirm = seat && count > 0;
+    $confirmBtn.prop('disabled', !canConfirm)
+      .text(canConfirm
+        ? 'Confirm ' + count + ' Slot' + (count > 1 ? 's' : '')
+        : (seat ? 'Select Time Slots' : 'Select a Seat to Continue'));
+  }
+
+  // --- Time slot chip click (auto-fill consecutive slots) ---
+  $('#timeslotGrid').on('change', 'input[type="checkbox"]', function() {
+    var $allChips = $('#timeslotGrid .timeslot-chip').not('.disabled');
+    var clickedIndex = $allChips.index($(this).closest('.timeslot-chip'));
+
+    if (this.checked) {
+      var checkedIndices = [];
+      $allChips.each(function(i) {
+        if ($(this).find('input').is(':checked')) checkedIndices.push(i);
+      });
+
+      if (checkedIndices.length > 1) {
+        var minIdx = Math.min.apply(null, checkedIndices);
+        var maxIdx = Math.max.apply(null, checkedIndices);
+        $allChips.each(function(i) {
+          if (i >= minIdx && i <= maxIdx) {
+            $(this).addClass('active');
+            $(this).find('input').prop('checked', true);
+          }
+        });
+      } else {
+        $(this).closest('.timeslot-chip').addClass('active');
+      }
+    } else {
+      var uncheckFrom = clickedIndex;
+      $allChips.each(function(i) {
+        if (i >= uncheckFrom) {
+          $(this).removeClass('active');
+          $(this).find('input').prop('checked', false);
+        }
+      });
     }
-    if (!date) { alert('Please select a date.'); $('#walkinDate').focus(); return; }
-    var selectedDate = new Date(date);
-    var todayDate = new Date(); todayDate.setHours(0, 0, 0, 0);
-    if (selectedDate < todayDate) { alert('Cannot reserve for a past date.'); $('#walkinDate').focus(); return; }
+    updateSummary();
+    refreshAvailability();
+  });
+
+  // --- Seat click handler ---
+  $('.seat-grid').on('click', '.seat.available', function() {
+    $('.seat.selected').removeClass('selected').addClass('available');
+    $(this).removeClass('available').addClass('selected');
+    var seatId = $(this).attr('data-seat');
+    $('#summarySeat').text(seatId);
+    updateSummary();
+  });
+
+  // --- Date change ---
+  $('#reserveDate').on('change', function() {
+    var val = $(this).val();
+    if (val) $('#summaryDate').text(formatDateLong(val));
+    updateTimeslotAvailability();
+    refreshAvailability();
+  });
+
+  // --- Timeslot availability for today ---
+  function updateTimeslotAvailability() {
+    var selectedDate = $('#reserveDate').val();
+    var today = new Date().toISOString().split('T')[0];
+
+    if (selectedDate === today) {
+      var now = new Date();
+      var currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+      $('#timeslotGrid .timeslot-chip').each(function() {
+        var slotValue = $(this).attr('data-slot-value');
+        if (!slotValue) return;
+        var endPart = slotValue.split(' - ')[1];
+        var parts = endPart.split(':');
+        var endMinutes = parseInt(parts[0]) * 60 + parseInt(parts[1]);
+
+        if (currentMinutes >= endMinutes) {
+          $(this).addClass('disabled');
+          $(this).find('input').prop('disabled', true).prop('checked', false);
+          $(this).removeClass('active');
+        } else {
+          $(this).removeClass('disabled');
+          $(this).find('input').prop('disabled', false);
+        }
+      });
+    } else {
+      $('#timeslotGrid .timeslot-chip').each(function() {
+        $(this).removeClass('disabled');
+        $(this).find('input').prop('disabled', false);
+      });
+    }
+    updateSummary();
+  }
+
+  // --- Confirm walk-in reservation ---
+  $confirmBtn.on('click', function() {
+    var labCode = $(this).data('lab');
+    var seat = $('.seat.selected').attr('data-seat');
+    if (!seat) { alert('Please select a seat.'); return; }
+
+    var date = $('#reserveDate').val();
+    var timeSlots = getSelectedSlots();
+
+    if (!date) { alert('Please select a date.'); return; }
+    if (timeSlots.length === 0) { alert('Please select at least one time slot.'); return; }
 
     fetch('/api/walkin', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        studentId: studentId,
-        lab: lab,
+        lab: labCode,
         seat: seat,
         date: date,
-        timeSlot: timeSlot
+        timeSlots: timeSlots
       })
     })
     .then(function(res) { return res.json(); })
     .then(function(data) {
       if (data.success) {
-        var r = data.reservation;
-        alert('Walk-in reservation created!\n\nStudent ID: ' + studentId +
-              '\nLab: ' + lab + '\nSeat: ' + seat + '\nDate: ' + date + '\nTime: ' + timeSlot);
-
-        // Remove empty state message if present
-        var $emptyMsg = $('.summary-details .summary-item p');
-        if ($emptyMsg.length && $emptyMsg.text().indexOf('No current') > -1) {
-          $emptyMsg.closest('.summary-item').remove();
-        }
-
-        // Add to DOM
-        var newItemHtml =
-          '<div class="divider"></div>' +
-          '<div class="walkin-reservation-item" data-reservation-id="' + r._id + '">' +
-            '<div class="summary-item">' +
-              '<span class="label">' + lab + ' - Seat ' + seat + '</span>' +
-              '<span class="value">' + timeSlot.split(' - ')[0] + ' - ' + (r.studentName || 'Student') + ' (' + studentId + ')</span>' +
-            '</div>' +
-            '<button class="remove-btn">Remove No-Show</button>' +
-          '</div>';
-        $('.summary-details').append(newItemHtml);
-        $form[0].reset();
+        var count = data.count || timeSlots.length;
+        alert('Walk-in reservation created!\n\n' + count + ' slot' + (count > 1 ? 's' : '') + ' for Seat ' + seat + ' at ' + labCode);
+        window.location.href = '/reservations';
       } else {
         alert(data.error || 'Failed to create walk-in reservation.');
       }
@@ -731,36 +1118,67 @@ function initWalkInPage() {
     });
   });
 
-  // Remove no-show
-  $('.summary-details').on('click', '.remove-btn', function() {
-    var $item = $(this).closest('.walkin-reservation-item');
-    var resId = $item.data('reservation-id');
-    var seatInfo = $item.find('.label').text();
-    var studentInfo = $item.find('.value').text();
+  // --- Refresh seat availability ---
+  function refreshAvailability() {
+    var labCode = $confirmBtn.data('lab');
+    var date = $('#reserveDate').val();
+    var slots = getSelectedSlots();
+    if (!labCode || !date) return;
 
-    if (!confirm('Remove this no-show reservation?\n\n' + seatInfo + '\n' + studentInfo +
-                 '\n\nThis will cancel the reservation and free the seat.')) return;
+    if (slots.length === 0) {
+      $('.seat').each(function() {
+        if (!$(this).hasClass('selected')) {
+          $(this).removeClass('occupied reserved').addClass('available');
+          $(this).attr('title', $(this).attr('data-seat') + ' - Available');
+        }
+      });
+      var totalSeats = $('.seat').length;
+      $('.availability-badge').text(totalSeats + ' seats available');
+      return;
+    }
 
-    fetch('/api/walkin/' + resId + '/remove', { method: 'PUT' })
-    .then(function(res) { return res.json(); })
-    .then(function(data) {
-      if (data.success) {
-        $item.prev('.divider').remove();
-        $item.fadeOut(300, function() {
-          $(this).remove();
-          if ($('.walkin-reservation-item').length === 0) {
-            $('.summary-details').html(
-              '<div class="summary-item" style="text-align:center;color:#666;"><p>No current walk-in reservations</p></div>'
-            );
+    $('.seat.selected').removeClass('selected').addClass('available');
+    $('#summarySeat').text('-');
+    updateSummary();
+
+    var fetches = slots.map(function(slot) {
+      return fetch('/api/labs/' + encodeURIComponent(labCode) + '/seats?date=' + date + '&timeSlot=' + encodeURIComponent(slot))
+        .then(function(res) { return res.json(); });
+    });
+
+    Promise.all(fetches).then(function(results) {
+      var seatStatus = {};
+      var seatTooltip = {};
+      results.forEach(function(resp) {
+        var seats = (resp && resp.data && resp.data.seats) || (resp && resp.seats) || [];
+        seats.forEach(function(seat) {
+          if (!seatStatus[seat.id]) {
+            seatStatus[seat.id] = 'available';
+            seatTooltip[seat.id] = seat.id + ' - Available';
+          }
+          if (seat.status !== 'available') {
+            seatStatus[seat.id] = seat.status;
+            seatTooltip[seat.id] = seat.occupant ? seat.id + ' - Reserved by ' + seat.occupant : seat.id + ' - Reserved';
           }
         });
-        setTimeout(function() { alert('No-show reservation removed successfully.'); }, 350);
-      } else {
-        alert(data.error || 'Failed to remove reservation.');
-      }
-    })
-    .catch(function() { alert('Failed to remove reservation.'); });
-  });
+      });
+
+      var availableCount = 0;
+      $('.seat').each(function() {
+        var id = $(this).attr('data-seat');
+        var status = seatStatus[id] || 'available';
+        $(this).removeClass('available occupied reserved selected').addClass(status);
+        $(this).attr('title', seatTooltip[id] || id);
+        if (status === 'available') availableCount++;
+      });
+      $('.availability-badge').text(availableCount + ' seats available');
+    }).catch(function() {});
+  }
+  setInterval(refreshAvailability, 30000);
+
+  // Initial setup
+  updateTimeslotAvailability();
+  updateSummary();
 }
 
 
@@ -774,19 +1192,40 @@ function initPagination() {
   var itemsPerPage = 5;
   var currentPage = 1;
 
+  // Get all paginatable items and mark them as included initially
+  var $allItems = $('.reservation-card, .user-card');
+  $allItems.addClass('paginate-item');
+
+  function getFilteredItems() {
+    // Items NOT hidden by search/filter (i.e. not display:none from filterCards)
+    // We use a class to distinguish filter-hidden from pagination-hidden
+    return $allItems.not('.filter-hidden');
+  }
+
   function showPage(page) {
+    var $filtered = getFilteredItems();
+    var totalPages = Math.ceil($filtered.length / itemsPerPage) || 1;
+
+    // Clamp page
+    if (page < 1) page = 1;
+    if (page > totalPages) page = totalPages;
     currentPage = page;
-    var $items = $('.reservation-card:visible, .user-card:visible');
-    var totalPages = Math.ceil($items.length / itemsPerPage) || 1;
 
+    // Hide all, then show only the current page slice
+    $allItems.hide();
     var start = (page - 1) * itemsPerPage;
-    $items.hide().slice(start, start + itemsPerPage).show();
+    $filtered.slice(start, start + itemsPerPage).show();
 
-    $('.page-num').removeClass('active').filter(function() {
-      return parseInt($(this).text()) === page;
-    }).addClass('active');
+    // Update page number buttons
+    var $pageNumbers = $('.page-numbers');
+    $pageNumbers.empty();
+    for (var i = 1; i <= totalPages; i++) {
+      var activeClass = (i === page) ? ' active' : '';
+      $pageNumbers.append('<button class="page-num' + activeClass + '">' + i + '</button>');
+    }
 
-    $('.page-btn').first().prop('disabled', page === 1);
+    // Update prev/next
+    $('.page-btn').first().prop('disabled', page <= 1);
     $('.page-btn').last().prop('disabled', page >= totalPages);
     $('.page-info').text('Page ' + page + ' of ' + totalPages);
   }
@@ -810,27 +1249,79 @@ function initGlobalSearch() {
   var $searchInput = $('.search-bar input');
   var path = window.location.pathname;
 
-  $searchInput.on('keypress', function(e) {
-    if (e.which !== 13) return;
-    var searchTerm = $(this).val().trim().toLowerCase();
-    if (!searchTerm) return;
+  function performSearch() {
+    var searchTerm = $searchInput.val().trim().toLowerCase();
 
     if (path.indexOf('/cmpslots') > -1) {
+      // Filter lab cards by lab code or building name
       $('.lab-card').each(function() {
+        if (!searchTerm) { $(this).show(); return; }
         var labName = $(this).find('h3').text().toLowerCase();
         var building = $(this).find('.building-tag').text().toLowerCase();
         $(this).toggle(labName.indexOf(searchTerm) > -1 || building.indexOf(searchTerm) > -1);
       });
     } else if (path.indexOf('/users') > -1) {
+      // Delegate to the dedicated user search input
       $('#userSearch').val(searchTerm).trigger('keyup');
+    } else if (path.indexOf('/reservations') > -1) {
+      // Filter reservation cards by lab, seat, or building
+      $('.reservation-card').each(function() {
+        if (!searchTerm) { $(this).removeClass('filter-hidden'); return; }
+        var labSeat = $(this).find('.reservation-main h3').text().toLowerCase();
+        var building = $(this).find('.location').text().toLowerCase();
+        var time = $(this).find('.time').text().toLowerCase();
+        if (labSeat.indexOf(searchTerm) > -1 || building.indexOf(searchTerm) > -1 || time.indexOf(searchTerm) > -1) {
+          $(this).removeClass('filter-hidden');
+        } else {
+          $(this).addClass('filter-hidden');
+        }
+      });
+      if (typeof window.refreshPagination === 'function') {
+        window.refreshPagination();
+      }
+    } else if (path.indexOf('/reserve') > -1) {
+      // Highlight matching seats in the seat grid
+      if (!searchTerm) {
+        $('.seat').removeClass('search-highlight');
+        return;
+      }
+      $('.seat').each(function() {
+        var seatId = $(this).attr('data-seat').toLowerCase();
+        if (seatId.indexOf(searchTerm) > -1) {
+          $(this).addClass('search-highlight');
+        } else {
+          $(this).removeClass('search-highlight');
+        }
+      });
     } else {
-      window.location.href = '/cmpslots?search=' + encodeURIComponent(searchTerm);
+      // All other pages: redirect to cmpslots with search query
+      if (searchTerm) {
+        window.location.href = '/cmpslots?search=' + encodeURIComponent(searchTerm);
+      }
+    }
+  }
+
+  // Search on Enter key
+  $searchInput.on('keypress', function(e) {
+    if (e.which !== 13) return;
+    performSearch();
+  });
+
+  // Live search as user types (for pages with client-side filtering)
+  $searchInput.on('input', function() {
+    if (path.indexOf('/cmpslots') > -1 ||
+        path.indexOf('/users') > -1 ||
+        path.indexOf('/reservations') > -1 ||
+        path.indexOf('/reserve') > -1) {
+      performSearch();
     }
   });
 
+  // Apply search from URL query param on cmpslots
   var urlSearch = new URLSearchParams(window.location.search).get('search');
   if (urlSearch && path.indexOf('/cmpslots') > -1) {
-    $searchInput.val(urlSearch).trigger($.Event('keypress', { which: 13 }));
+    $searchInput.val(urlSearch);
+    performSearch();
   }
 }
 
@@ -841,6 +1332,9 @@ function initGlobalSearch() {
 
 $(document).ready(function() {
   var path = window.location.pathname;
+
+  // Background slideshow on auth pages (index, login, register)
+  initBgSlideshow();
 
   // Signout is available on all authenticated pages
   if ($('#signoutBtn').length) {
@@ -854,19 +1348,26 @@ $(document).ready(function() {
     initTechLoginPage();
   } else if (path === '/register' || path === '/register/') {
     initRegisterPage();
-  } else if (path.indexOf('/reserve') > -1) {
-    initSeatSelection();
   } else if (path === '/reservations' || path === '/reservations/') {
     initReservationsPage();
+  } else if (path === '/walkin' || path === '/walkin/') {
+    initWalkInPage();
+  } else if (path.indexOf('/reserve') > -1) {
+    initSeatSelection();
   } else if (path === '/profile' || path === '/profile/') {
     initProfilePage();
   } else if (path === '/users' || path === '/users/') {
     initUserSearch();
-  } else if (path === '/walkin' || path === '/walkin/') {
-    initWalkInPage();
   } else if (path === '/changepassword' || path === '/changepassword/') {
     initChangePasswordPage();
   }
+
+  // Auth-gate: intercept clicks on links that require login
+  $(document).on('click', '[data-requires-auth]', function(e) {
+    e.preventDefault();
+    alert('Please log in first to access this page.');
+    window.location.href = '/login';
+  });
 
   // Global handlers
   initGlobalSearch();

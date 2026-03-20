@@ -1,0 +1,33 @@
+{{!-- Walk-In Lab Selection page (technician only) --}}
+<div class="page-header">
+  <h1>Walk-In Reservation</h1>
+  <p>Select a lab to reserve a seat for a walk-in student</p>
+</div>
+
+{{!-- Lab Cards Grid --}}
+<div class="labs-grid">
+  {{#each labs}}
+  <article class="lab-card" data-lab="{{this.code}}">
+    <div class="lab-header">
+      <h3>{{this.code}}</h3>
+      <span class="building-tag">{{this.building}}</span>
+    </div>
+    <div class="lab-stats">
+      <div class="stat">
+        <span class="stat-number available">{{this.available}}</span>
+        <span class="stat-label">Available</span>
+      </div>
+      <div class="stat">
+        <span class="stat-number occupied">{{this.occupied}}</span>
+        <span class="stat-label">Occupied</span>
+      </div>
+      <div class="stat">
+        <span class="stat-number total">{{this.totalSeats}}</span>
+        <span class="stat-label">Total</span>
+      </div>
+    </div>
+    <div class="lab-info"><p><strong>Hours:</strong> {{this.hours}}</p></div>
+    <a href="/walkin?lab={{this.code}}" class="reserve-btn">Select for Walk-In</a>
+  </article>
+  {{/each}}
+</div>

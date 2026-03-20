@@ -14,7 +14,8 @@ OpenLab allows students to view real-time computer lab availability and reserve 
 - **Database:** MongoDB with Mongoose ODM
 - **Session Store:** connect-mongo (MongoDB-backed sessions)
 - **Password Hashing:** bcrypt
-- **Frontend:** Bootstrap 4.4.1, custom CSS, vanilla JS with fetch API
+- **Email:** Nodemailer (reservation notifications)
+- **Frontend:** jQuery, custom CSS, vanilla JS with fetch API
 
 ## Setup & Installation
 
@@ -60,16 +61,28 @@ OpenLab allows students to view real-time computer lab availability and reserve 
 
 ## Default Accounts
 
-| Role | Email | Password |
-|------|-------|----------|
-| Student | maria_santos@dlsu.edu.ph | password123 |
-| Technician | tech_admin@dlsu.edu.ph | admin123 |
+### Students (password: `password123`)
 
-Other student accounts (all use password `password123`):
-- jose_rizal@dlsu.edu.ph
-- ana_lopez@dlsu.edu.ph
-- karl_mendoza@dlsu.edu.ph
-- lea_cruz@dlsu.edu.ph
+| Name | Email | Student ID | College |
+|------|-------|------------|---------|
+| Maria Clara Santos | maria_santos@dlsu.edu.ph | 12340001 | CCS |
+| Jose Rizal Jr. | jose_rizal@dlsu.edu.ph | 12340002 | CLA |
+| Ana Garcia Lopez | ana_lopez@dlsu.edu.ph | 12340003 | GCOE |
+| Karl Reyes Mendoza | karl_mendoza@dlsu.edu.ph | 12340004 | COB |
+| Lea Domingo Cruz | lea_cruz@dlsu.edu.ph | 12340005 | COS |
+| Miguel Angel Reyes | miguel_reyes@dlsu.edu.ph | 12340006 | CCS |
+| Sofia Isabella Garcia | sofia_garcia@dlsu.edu.ph | 12340007 | COE |
+| Carlos Antonio Tan | carlos_tan@dlsu.edu.ph | 12340008 | CCS |
+| Andrea Marie Lim | andrea_lim@dlsu.edu.ph | 12340009 | SOE |
+| Rafael James Ong | rafael_ong@dlsu.edu.ph | 12340010 | BAGCED |
+
+### Technicians (password: `admin123`)
+
+| Name | Email | Student ID |
+|------|-------|------------|
+| Ivan Kenneth Reyes | ivan_reyes@dlsu.edu.ph | 12310001 |
+| John Benedict Santos | benedict_santos@dlsu.edu.ph | 12310002 |
+| Chrisander Jervin Yu | chrisander_yu@dlsu.edu.ph | 12310003 |
 
 ## Features
 
@@ -82,14 +95,24 @@ Other student accounts (all use password `password123`):
 - **View Lab Availability** - Color-coded seat maps showing real-time availability
 - **Edit Profile** - Update bio, avatar, and personal information
 - **Change Password** - Secure password change with current password verification
-- **Search Users** - Find users by name, student ID, or college
+- **Consecutive Slot Selection** - Selecting non-adjacent time slots auto-fills the gap to keep slots consecutive
+- **Search Users** - Find users by name, student ID, or college (excludes self and technicians)
+- **View Public Profiles** - See other users' upcoming non-anonymous reservations
 - **Delete Account** - Remove account and cascade-delete all reservations
+- **Email Notifications** - Receive email alerts on reservation create/update/cancel
+- **Auto-Complete Reservations** - Past reservations automatically marked as completed on login
+- **Past Timeslot Disabling** - Time slots that have already passed today are greyed out and unselectable
+- **Background Slideshow** - Landing, login, and register pages cycle through background images
 
-### For Lab Technicians (all student features, plus)
-- **Reserve for Walk-ins** - Create reservations on behalf of walk-in students
+### For Lab Technicians
+- **Walk-In Reservations** - Reserve seats for walk-in students (booked under technician's name, same seat map UI as student reserve)
 - **Remove No-shows** - Cancel walk-in reservations after 10-minute window
-- **View All Reservations** - See all users' reservations with email labels
+- **All Reservations** - See all users' reservations with email labels
+- **All Users** - View all student accounts (technicians are hidden from user list)
 - **Admin Dashboard** - View all-user stats and data
+- **No Delete Account** - Technician accounts cannot be deleted
+- **No College** - Technician accounts do not have a college field
+- **No "Available Slots" nav** - Technicians access labs via Walk-In page instead
 
 ## Project Structure
 
@@ -103,7 +126,7 @@ OpenLab-ComputerReservation-Lab/
 ├── public/                         # Static assets (express.static)
 │   ├── css/style.css               # All styling
 │   ├── js/app.js                   # Frontend JS (fetch-based)
-│   └── assets/bg.png               # Background image
+│   └── assets/                     # Background images (bg.png, bg2.png, bg3.jpeg)
 │
 ├── src/
 │   ├── models/                     # Mongoose schemas
@@ -122,7 +145,8 @@ OpenLab-ComputerReservation-Lab/
 │   ├── middleware/
 │   │   └── auth.js                 # authMiddleware + techMiddleware
 │   ├── helpers/
-│   │   └── hbs-helpers.js          # Handlebars helpers (eq, formatDate, etc.)
+│   │   ├── hbs-helpers.js          # Handlebars helpers (eq, formatDate, etc.)
+│   │   └── emailService.js        # Email notification service (Nodemailer)
 │   └── views/                      # Handlebars templates
 │       ├── layouts/
 │       │   ├── auth.hbs            # Layout for public pages
@@ -140,7 +164,8 @@ OpenLab-ComputerReservation-Lab/
 │       ├── profile.hbs             # User profile
 │       ├── public-profile.hbs      # Other user's public profile
 │       ├── users.hbs               # User search and directory
-│       ├── walkin.hbs              # Walk-in reservation (technician)
+│       ├── walkin.hbs              # Walk-in seat reservation (technician)
+│       ├── walkin-labs.hbs        # Walk-in lab selection (technician)
 │       ├── changepassword.hbs      # Change password form
 │       ├── adminsignup.hbs         # Technician login
 │       └── error.hbs               # Error page (404, 403, 500)
@@ -153,17 +178,18 @@ OpenLab-ComputerReservation-Lab/
 | Data | Count | Details |
 |------|-------|---------|
 | Labs | 5 | AG1010 (30 seats), LS313 (25), GK101A (40), GK101B (40), GK304 (20) |
-| Users | 6 | 5 students + 1 technician (all passwords hashed with bcrypt) |
-| Reservations | 7 | Mix of upcoming, completed, and cancelled |
+| Users | 13 | 10 students + 3 technicians (all passwords hashed with bcrypt) |
+| Reservations | 25 | Mix of upcoming, completed, cancelled, anonymous, and walk-in |
 | Colleges | 8 | CCS, CLA, COB, COE, COS, GCOE, SOE, BAGCED |
-| Time Slots | 20 | 30-min intervals from 7:30 AM to 5:30 PM |
+| Time Slots | 28 | 30-min intervals from 7:00 AM to 9:00 PM |
 
 ## Reservation Rules
 
-- Slots are available in **30-minute intervals** (7:30 AM - 5:30 PM)
+- Slots are available in **30-minute intervals** (7:00 AM - 9:00 PM)
 - Students can reserve up to **7 days in advance**
 - Walk-in no-shows can be removed after **10 minutes**
-- **Double-booking prevention** via compound database index
+- **Double-booking prevention** via date-range query and compound database index
+- **Consecutive slot enforcement** — selecting a far slot auto-fills all slots in between
 - Students can make **anonymous reservations** to hide their identity
 
 ## API Routes
@@ -193,7 +219,10 @@ OpenLab-ComputerReservation-Lab/
 | Method | Route | Description |
 |--------|-------|-------------|
 | GET | `/api/users` | Search users by name/ID/college |
+| GET | `/api/users/:id` | Get user by ID with reservations |
 | PUT | `/api/profile` | Update current user's profile |
+| PUT | `/api/profile/avatar` | Upload avatar image |
+| PUT | `/api/profile/notifications` | Toggle email notifications |
 | PUT | `/api/profile/password` | Change password |
 | DELETE | `/api/profile` | Delete account |
 

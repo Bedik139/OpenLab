@@ -15,16 +15,22 @@
 
       {{!-- Time Selection --}}
       <div class="time-selection">
-        <label>Select Date & Time</label>
+        <label>Select Date</label>
         <div class="time-row">
           <input type="date" id="reserveDate"
                  value="{{#if editReservation}}{{editReservation.dateStr}}{{else}}{{today}}{{/if}}"
                  min="{{today}}" max="{{maxDate}}">
-          <select id="timeSlot">
-            {{#each timeSlots}}
-            <option value="{{this.value}}"{{#if this.selected}} selected{{/if}}>{{this.label}}</option>
-            {{/each}}
-          </select>
+        </div>
+      </div>
+      <div class="time-selection">
+        <label>Select Time Slots <span class="slot-count-label" id="slotCountLabel">(0 selected)</span></label>
+        <div class="timeslot-grid" id="timeslotGrid">
+          {{#each timeSlots}}
+          <label class="timeslot-chip{{#if this.disabled}} disabled{{/if}}" data-value="{{this.label}}" data-slot-value="{{this.value}}">
+            <input type="checkbox" name="timeSlots" value="{{this.label}}"{{#if this.selected}} checked{{/if}}{{#if this.disabled}} disabled{{/if}}>
+            <span class="chip-text">{{this.label}}</span>
+          </label>
+          {{/each}}
         </div>
       </div>
 
@@ -57,7 +63,8 @@
         <div class="summary-item"><span class="label">Lab</span><span class="value">{{lab.code}}</span></div>
         <div class="summary-item"><span class="label">Building</span><span class="value">{{lab.building}}</span></div>
         <div class="summary-item"><span class="label">Date</span><span class="value" id="summaryDate">{{summaryDate}}</span></div>
-        <div class="summary-item"><span class="label">Time Slot</span><span class="value" id="summaryTime">{{summaryTime}}</span></div>
+        <div class="summary-item"><span class="label">Time Slots</span><span class="value" id="summaryTime">-</span></div>
+        <div class="summary-item"><span class="label">Duration</span><span class="value" id="summaryDuration">-</span></div>
         <div class="summary-item"><span class="label">Selected Seat</span><span class="value" id="summarySeat">{{#if editReservation}}{{editReservation.seat}}{{else}}-{{/if}}</span></div>
       </div>
       <div class="divider"></div>
@@ -65,9 +72,9 @@
         <h4>Reservation Rules</h4>
         <ul>
           <li>Each slot is 30 minutes</li>
+          <li>Select multiple consecutive slots</li>
           <li>Book up to 7 days in advance</li>
           <li>Arrive within 10 minutes or forfeit</li>
-          <li>Maximum 2 active reservations</li>
         </ul>
       </div>
       <div class="anon">

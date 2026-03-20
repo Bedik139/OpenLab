@@ -190,8 +190,16 @@ const deleteAccount = async (req, res) => {
     try {
         const userId = req.session.user._id;
 
-        // Delete all reservations owned by this user
-        await Reservation.deleteMany({ user: userId });
+        // Technicians cannot delete their accounts
+        if (req.session.user.accountType === 'technician') {
+            return res.status(403).json({ error: 'Technician accounts cannot be deleted.' });
+        }
+
+        // Cancel all pending (upcoming) reservations for this user
+        await Reservation.updateMany(
+            { user: userId, status: 'upcoming' },
+            { $set: { status: 'cancelled' } }
+        );
 
         // Delete the user document itself
         await User.findByIdAndDelete(userId);
@@ -212,11 +220,54 @@ const deleteAccount = async (req, res) => {
     }
 };
 
+// Upload avatar (base64 data URL)
+const uploadAvatar = async (req, res) => {
+    try {
+        const { avatarUrl } = req.body;
+        const userId = req.session.user._id;
+
+        if (!avatarUrl || !avatarUrl.startsWith('data:image/')) {
+            return res.status(400).json({ error: 'Invalid image data.' });
+        }
+
+        // Rough size check (~2MB base64)
+        if (avatarUrl.length > 3 * 1024 * 1024) {
+            return res.status(400).json({ error: 'Image too large. Max 2MB.' });
+        }
+
+        await User.findByIdAndUpdate(userId, { avatarUrl });
+        req.session.user.avatarUrl = avatarUrl;
+
+        return res.json({ success: true });
+    } catch (error) {
+        console.error('Error uploading avatar:', error);
+        return res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+// Update notification preference
+const updateNotifications = async (req, res) => {
+    try {
+        const { notifications } = req.body;
+        const userId = req.session.user._id;
+
+        await User.findByIdAndUpdate(userId, { notifications: !!notifications });
+        req.session.user.notifications = !!notifications;
+
+        return res.json({ success: true });
+    } catch (error) {
+        console.error('Error updating notifications:', error);
+        return res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
 // 7. Export all functions
 module.exports = {
     search,
     getById,
     updateProfile,
     changePassword,
-    deleteAccount
+    deleteAccount,
+    uploadAvatar,
+    updateNotifications
 };

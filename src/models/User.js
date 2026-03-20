@@ -55,10 +55,11 @@ const userSchema = new mongoose.Schema({
     unique: true 
   },
 
-  college: { 
-    type: String, 
-    required: true, 
-    enum: ['CCS','CLA','COB','COE','COS','GCOE','SOE','BAGCED'] 
+  college: {
+    type: String,
+    required: false,
+    enum: ['CCS','CLA','COB','COE','COS','GCOE','SOE','BAGCED', ''],
+    default: ''
   },
 
   accountType: { 
@@ -82,16 +83,15 @@ const userSchema = new mongoose.Schema({
     default: null 
   },
 
-  avatarClass: { 
-    type: String, 
-    default: '' 
+  avatarClass: {
+    type: String,
+    default: ''
   },
 
   notifications: {
     type: Boolean,
     default: true
   }
-  
 }, { timestamps: true }); // Adds createdAt and updatedAt fields automatically
 
 

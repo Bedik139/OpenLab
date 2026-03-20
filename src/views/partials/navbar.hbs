@@ -3,21 +3,33 @@
     <a href="/" class="logo">OpenLab</a>
     <div class="nav-links">
       <a href="/"{{#if (eq activePage "index")}} class="active"{{/if}}>Home</a>
-      <a href="/cmpslots"{{#if (eq activePage "cmpslots")}} class="active"{{/if}}>Available Slots</a>
-      <a href="/dashboard"{{#if (eq activePage "dashboard")}} class="active"{{/if}}>Dashboard</a>
-      <a href="/reservations"{{#if (eq activePage "reservations")}} class="active"{{/if}}>My Reservations</a>
       {{#if user}}
         {{#if (eq user.accountType "technician")}}
+        {{else}}
+          <a href="/cmpslots"{{#if (eq activePage "cmpslots")}} class="active"{{/if}}>Available Slots</a>
+        {{/if}}
+        <a href="/dashboard"{{#if (eq activePage "dashboard")}} class="active"{{/if}}>Dashboard</a>
+        {{#if (eq user.accountType "technician")}}
+          <a href="/reservations"{{#if (eq activePage "reservations")}} class="active"{{/if}}>All Reservations</a>
           <a href="/walkin"{{#if (eq activePage "walkin")}} class="active"{{/if}}>Walk-In</a>
+        {{else}}
+          <a href="/reservations"{{#if (eq activePage "reservations")}} class="active"{{/if}}>My Reservations</a>
         {{/if}}
         <a href="/profile"{{#if (eq activePage "profile")}} class="active"{{/if}}>Profile</a>
-        <a href="/users"{{#if (eq activePage "users")}} class="active"{{/if}}>Find Users</a>
-        <a href="/about"{{#if (eq activePage "about")}} class="active"{{/if}}>About</a>
+        {{#if (eq user.accountType "technician")}}
+          <a href="/users"{{#if (eq activePage "users")}} class="active"{{/if}}>All Users</a>
+        {{else}}
+          <a href="/users"{{#if (eq activePage "users")}} class="active"{{/if}}>Find Users</a>
+        {{/if}}
       {{else}}
+        <a href="/cmpslots"{{#if (eq activePage "cmpslots")}} class="active"{{/if}}>Available Slots</a>
+        <a href="#" class="auth-required" data-requires-auth="true">Dashboard</a>
+        <a href="#" class="auth-required" data-requires-auth="true">My Reservations</a>
         <a href="/login"{{#if (eq activePage "login")}} class="active"{{/if}}>Login</a>
       {{/if}}
+      <a href="/about"{{#if (eq activePage "about")}} class="active"{{/if}}>About</a>
       <div class="search-bar">
-        <input type="text" placeholder="Search...">
+        <input type="text" placeholder="{{#if (eq activePage "cmpslots")}}Search labs or buildings...{{else if (eq activePage "users")}}Search by name or ID...{{else if (eq activePage "reservations")}}Search by lab, seat, or building...{{else if (eq activePage "reserve")}}Search seat (e.g. A1)...{{else}}Search labs...{{/if}}">
       </div>
     </div>
   </div>

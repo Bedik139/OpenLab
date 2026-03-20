@@ -15,19 +15,22 @@ helpers, views), and static assets in public/.
 1. DEFAULT ACCOUNTS
 ================================================================================
 
-STUDENT ACCOUNT
-  Email:    maria_santos@dlsu.edu.ph
-  Password: password123
+STUDENT ACCOUNTS (all use password: password123)
+  Maria Clara Santos      maria_santos@dlsu.edu.ph       ID: 12340001  CCS
+  Jose Rizal Jr.          jose_rizal@dlsu.edu.ph         ID: 12340002  CLA
+  Ana Garcia Lopez        ana_lopez@dlsu.edu.ph          ID: 12340003  GCOE
+  Karl Reyes Mendoza      karl_mendoza@dlsu.edu.ph       ID: 12340004  COB
+  Lea Domingo Cruz        lea_cruz@dlsu.edu.ph           ID: 12340005  COS
+  Miguel Angel Reyes      miguel_reyes@dlsu.edu.ph       ID: 12340006  CCS
+  Sofia Isabella Garcia   sofia_garcia@dlsu.edu.ph       ID: 12340007  COE
+  Carlos Antonio Tan      carlos_tan@dlsu.edu.ph         ID: 12340008  CCS
+  Andrea Marie Lim        andrea_lim@dlsu.edu.ph         ID: 12340009  SOE
+  Rafael James Ong        rafael_ong@dlsu.edu.ph         ID: 12340010  BAGCED
 
-TECHNICIAN ACCOUNT
-  Email:    tech_admin@dlsu.edu.ph
-  Password: admin123
-
-OTHER SAMPLE STUDENT ACCOUNTS (all use password: password123)
-  - jose_rizal@dlsu.edu.ph
-  - ana_lopez@dlsu.edu.ph
-  - karl_mendoza@dlsu.edu.ph
-  - lea_cruz@dlsu.edu.ph
+TECHNICIAN ACCOUNTS (all use password: admin123) — no college field
+  Ivan Kenneth Reyes      ivan_reyes@dlsu.edu.ph         ID: 12310001
+  John Benedict Santos    benedict_santos@dlsu.edu.ph    ID: 12310002
+  Chrisander Jervin Yu    chrisander_yu@dlsu.edu.ph      ID: 12310003
 
 
 ================================================================================
@@ -50,7 +53,9 @@ seed.js                     Database seed script
 public/                     Static folder (served by express.static)
   css/style.css             All styling
   js/app.js                 Frontend JS (fetch-based, no localStorage)
-  assets/bg.png             Background image
+  assets/bg.png             Background image 1
+  assets/bg2.png            Background image 2
+  assets/bg3.jpeg           Background image 3
 
 src/
   models/                   Mongoose schemas (the "database/models" folder)
@@ -70,6 +75,7 @@ src/
     auth.js                 authMiddleware + techMiddleware
   helpers/
     hbs-helpers.js          Handlebars helpers (eq, formatDate, etc.)
+    emailService.js         Email notification service (Nodemailer)
   views/                    Handlebars templates
     layouts/
       auth.hbs              Layout for login/register pages
@@ -88,7 +94,8 @@ src/
     profile.hbs             User profile
     public-profile.hbs      Other user's public profile
     users.hbs               User search and directory
-    walkin.hbs              Walk-in reservation (technician only)
+    walkin.hbs              Walk-in seat reservation (technician only)
+    walkin-labs.hbs         Walk-in lab selection (technician only)
     changepassword.hbs      Change password form
     error.hbs               Generic error page
 
@@ -118,29 +125,34 @@ specs/                      Project specification PDFs
 STUDENT can:
   - Register and login
   - View lab availability and seat maps
-  - Reserve a seat (30-min slots)
+  - Reserve a seat (30-min consecutive slots)
   - View, edit, and cancel their own reservations
-  - View and edit their profile
+  - View and edit their profile (with college field)
   - Change their password
-  - Search for other users
+  - Search for other student users (technicians hidden)
   - Delete their account
 
-TECHNICIAN can do everything a student can, PLUS:
-  - See ALL reservations from all users (on reservations page)
+TECHNICIAN can:
+  - Login (via regular login or technician login page)
+  - See ALL reservations from all users ("All Reservations" nav)
+  - See all student accounts ("All Users" nav, technicians hidden)
   - See all-user stats on their dashboard
-  - Access the Walk-In Reservation page (walkin.html)
-  - Create walk-in reservations for students
-  - Remove no-show reservations
-  - Walk-In link appears in their navbar
+  - Access Walk-In page to reserve seats (booked under own name)
+  - Remove no-show walk-in reservations (10-min window)
+  - Edit any student's reservation
+  - Edit their own profile (no college field, no delete account)
+  - "Available Slots" nav link is hidden for technicians
 
 PROTECTED PAGES (redirect to login if not authenticated):
-  - dashboard.html
-  - reservations.html
-  - reserve.html
-  - profile.html
+  - dashboard
+  - reservations
+  - reserve
+  - profile
+  - users
+  - changepassword
 
 TECHNICIAN-ONLY PAGE (students get "Access denied"):
-  - walkin.html
+  - walkin
 
 
 ================================================================================
@@ -171,24 +183,30 @@ LOGIN
   - Authenticates email + password against accounts store
   - Invalid credentials show error message
   - "Forgot password" shows password hint (demo only)
-  - Separate technician login page (adminsignup.html)
+  - Separate technician login page (adminsignup.hbs)
+  - Auto-completes past "upcoming" reservations on login
 
 RESERVATIONS
-  - Select lab, seat, date, time slot (30-min intervals, 7:30 AM - 5:30 PM)
+  - Select lab, seat, date, time slot (30-min intervals, 7:00 AM - 9:00 PM)
   - Seat map with available/occupied/reserved/selected states
+  - Seats correctly show as reserved when already booked (date-range query fix)
+  - Consecutive slot auto-fill: selecting non-adjacent slots fills the gap
   - Anonymous reservation option
   - Booking summary panel
   - Cancel, edit, and rebook actions
-  - All reservations persist in localStorage across page navigations
+  - Past timeslots are automatically disabled when date is today
+  - Past "upcoming" reservations auto-completed on login/dashboard visit
+  - Email notifications on create, update, and cancel
+  - Double-booking prevention via date-range query on same day/seat
   - Technicians see all users' reservations with email labels
 
 WALK-IN (Technician Only)
-  - Enter student ID, select lab, seat, date, time
-  - Validates student ID format and seat format
-  - Looks up student name from accounts if registered
-  - Saves to global reservation store with isWalkIn flag
-  - Right panel shows current walk-in reservations from storage
-  - Remove no-show button cancels the reservation in storage
+  - Same seat map UI as student reservation page
+  - Lab selection page → seat selection with timeslots and seat grid
+  - Reservation is booked under the technician's own account
+  - No student ID required — technician just picks seat and time
+  - isWalkIn flag marks it as a walk-in reservation
+  - Remove no-show available within 10 minutes of reservation start
 
 DASHBOARD
   - Dynamic stats computed from actual reservation data
@@ -204,13 +222,26 @@ PROFILE
   - Change password (validates current password)
   - Change avatar (file upload, max 2MB)
   - Email notification toggle
-  - Delete account (removes from all stores)
   - Role badge shows Student or Technician
+  - Students: shows college, current reservations, delete account option
+  - Technicians: no college field, no current reservations, no delete account
 
 SEARCH
   - Global search bar in navbar
   - Lab search on available slots page
   - User search by name, ID, or college filter
+  - Find Users / All Users page excludes current user and technicians
+  - Pagination with dynamic page numbers (properly handles filtering)
+
+PUBLIC PROFILES
+  - View other users' profiles via Find Users page
+  - Shows upcoming non-anonymous reservations
+  - Displays user info, college, bio, and avatar
+
+BACKGROUND SLIDESHOW
+  - Index, login, and register pages cycle through 3 background images
+  - Smooth crossfade transition every 5 seconds
+  - Images: bg.png, bg2.png, bg3.jpeg
 
 
 ================================================================================
@@ -242,7 +273,7 @@ Partials (reusable components):
 6. Open http://localhost:3000 in a browser
 7. Login with one of the default accounts above
 8. To test as student: use maria_santos@dlsu.edu.ph / password123
-9. To test as technician: use tech_admin@dlsu.edu.ph / admin123
+9. To test as technician: use ivan_reyes@dlsu.edu.ph / admin123
 10. To test registration: click "Sign up", fill the form, submit
 11. To re-seed data: run node seed.js again (clears and re-inserts)
 
@@ -258,14 +289,19 @@ Partials (reusable components):
   GK101B  - Gokongwei Building   (40 seats)
   GK304   - Gokongwei Building   (20 seats)
 
-7 Default Reservations (seeded per user on first login):
-  Mix of upcoming, completed, and cancelled statuses
+13 Users:
+  10 students + 3 technicians (all passwords hashed with bcrypt)
+  Technician accounts have no college field
+
+25 Reservations:
+  Mix of upcoming, completed, cancelled, anonymous, and walk-in
+  Spread across multiple users with relative dates (always valid)
 
 8 Colleges:
   CCS, CLA, COB, COE, COS, GCOE, SOE, BAGCED
 
-20 Time Slots:
-  30-minute intervals from 7:30 AM to 5:30 PM
+28 Time Slots:
+  30-minute intervals from 7:00 AM to 9:00 PM
 
 
 ================================================================================
@@ -315,6 +351,10 @@ Key changes to js/app.js:
     cookies with every request.
   - Error responses from the server (4xx/5xx) are caught and displayed
     to the user via the existing alert/toast UI.
+  - Background slideshow on auth pages (index, login, register) cycles
+    through 3 images every 5 seconds with crossfade transitions.
+  - Timeslot availability check disables past timeslots when date is today.
+  - Find Users page excludes the currently logged-in user from results.
 
 B. HANDLEBARS
 -------------
@@ -347,11 +387,16 @@ Template files created (src/views/):
 
 Handlebars helpers registered:
   - {{eq a b}}              Equality check for conditionals
+  - {{neq a b}}             Not-equal check
   - {{formatDate date}}     Formats ISO date to readable string
-  - {{formatTime slot}}     Maps time value to display label
-  - {{getInitials name}}    Returns first-letter initials for avatars
-  - {{ifTechnician role}}   Block helper for technician-only content
+  - {{formatTimeSlots arr}} Formats time slot array for display
+  - {{getInitials f l}}     Returns first-letter initials for avatars
+  - {{parseDateDay date}}   Extract day from date
+  - {{parseDateMonth date}} Extract month abbreviation from date
   - {{json obj}}            Serializes object for inline <script> data
+  - {{lowercase str}}       Lowercase helper
+  - {{capitalize str}}      Capitalize first letter
+  - {{ifCond v1 op v2}}     Conditional comparison helper
 
 C. COOKIES AND SESSIONS
 ------------------------
@@ -363,7 +408,7 @@ Setup (in index.js — the main entry point):
       secret: environment variable SESSION_SECRET
       resave: false
       saveUninitialized: false
-      cookie: { maxAge: 1000*60*60*24*7 } (7-day sessions)
+      cookie: { maxAge: 1000*60*60*24 } (24-hour sessions)
       store: MongoStore.create({ mongoUrl: MONGO_URI })
   - On successful login, the user object (without password) is stored
     in req.session.user.
@@ -423,12 +468,15 @@ IVAN — Node.js, Express, REST API
          GET  /api/reservations     → reservationController.getAll
          POST /api/reservations     → reservationController.create
          PUT  /api/reservations/:id → reservationController.update
-         DELETE /api/reservations/:id → reservationController.cancel
+         PUT  /api/reservations/:id/cancel → reservationController.cancel
+         DELETE /api/reservations/:id → reservationController.delete
          GET  /api/labs             → labController.getAll
          GET  /api/labs/:code/seats → labController.getSeats
          GET  /api/users            → userController.search
          PUT  /api/profile          → userController.updateProfile
          PUT  /api/profile/password → userController.changePassword
+         PUT  /api/profile/avatar   → userController.uploadAvatar
+         PUT  /api/profile/notifications → userController.updateNotifications
          DELETE /api/profile        → userController.deleteAccount
          POST /api/walkin           → walkinController.create
          GET  /api/walkin           → walkinController.getAll
@@ -463,9 +511,9 @@ CHRISANDER — MongoDB, Mongoose, Password Hashing
 
 [DONE] Create Mongoose models (src/models/)
        User.js — firstName, lastName, email (unique, lowercase),
-         password (hashed), studentId (unique), college (enum of 8),
-         accountType (enum), bio, avatarUrl, avatarClass, notifications,
-         timestamps enabled
+         password (hashed), studentId (unique), college (optional, enum of 8,
+         not required for technicians), accountType (enum), bio, avatarUrl,
+         avatarClass, notifications, timestamps enabled
 
        Reservation.js — user (ObjectId ref User), lab, seat, building,
          date, timeSlot, status (enum: upcoming/completed/cancelled),
@@ -476,7 +524,10 @@ CHRISANDER — MongoDB, Mongoose, Password Hashing
          rows, cols, hours
 
 [DONE] Create seed script (seed.js)
-       - Seeds 5 labs, 6 users (hashed passwords), 7 reservations
+       - Seeds 5 labs, 13 users (10 students + 3 technicians), 25 reservations
+       - Technicians seeded without college field
+       - Reservations use relative dates (always valid when seeded)
+       - Includes anonymous, multi-slot, and walk-in reservations
        - Run with: node seed.js
 
 [DONE] Implement password hashing
@@ -502,7 +553,9 @@ project-root/
     js/
       app.js                 Frontend JS (fetch-based)
     assets/
-      bg.png                 Background image
+      bg.png                 Background image 1
+      bg2.png                Background image 2
+      bg3.jpeg               Background image 3
 
   src/
     models/                  Mongoose schemas ("database/models")
@@ -522,6 +575,7 @@ project-root/
       auth.js                authMiddleware + techMiddleware
     helpers/
       hbs-helpers.js         Handlebars helpers
+      emailService.js        Email notification service (Nodemailer)
     views/
       layouts/
         auth.hbs             Layout for public pages
@@ -541,6 +595,7 @@ project-root/
       public-profile.hbs
       users.hbs
       walkin.hbs
+      walkin-labs.hbs
       changepassword.hbs
       error.hbs
 
@@ -563,7 +618,8 @@ PHASE A — Foundation [COMPLETE]
 [DONE] A3. Lab model — full schema with code, building, seats, rows, cols
 [DONE] A4. Reservation model — full schema, compound index, double-booking prevention
 [DONE] A5. auth middleware — authMiddleware (HTML/JSON aware), techMiddleware
-[DONE] A6. seed.js — 5 labs, 6 users (hashed), 7 reservations
+[DONE] A5b. emailService.js — Nodemailer-based email notifications
+[DONE] A6. seed.js — 5 labs, 13 users (hashed), 25 reservations
 
 ------------------------------------------------------------------------
 PHASE B — Authentication Routes [COMPLETE]
@@ -600,8 +656,8 @@ PHASE D — Core API Routes [COMPLETE]
 PHASE E — Walk-In Routes [COMPLETE]
 ------------------------------------------------------------------------
 
-[DONE] E1. walkinController.js — create (studentId lookup, double-booking
-      check), getAll (today's walk-ins), removeNoShow (10-min window)
+[DONE] E1. walkinController.js — create (books under technician's account,
+      date-range double-booking check), getAll, removeNoShow (10-min window)
 [DONE] E2. Walk-in API routes — POST/GET /api/walkin, PUT /api/walkin/:id/remove
 
 ------------------------------------------------------------------------
@@ -654,18 +710,19 @@ FEATURE: Real-Time Lab Seat Availability
 
 FEATURE: Reservations
   Status: FULLY IMPLEMENTED
-  - Reserve 30-minute lab slots (7:30 AM - 5:30 PM)
+  - Reserve 30-minute lab slots (7:00 AM - 9:00 PM)
   - Anonymous reservation option
   - View, edit, and cancel own reservations
-  - Technician: reserve for walk-in students
+  - Technician: walk-in reservations (booked under technician's name)
   - Technician: remove no-show reservations (10-min window)
   - Technician: view all users' reservations
   - Double-booking prevention via compound index
   - 7-day advance booking limit
 
 FEATURE: Automated Notifications (Additional Feature)
-  Status: PARTIALLY IMPLEMENTED
-  - Email notification toggle exists on user profile
+  Status: MOSTLY IMPLEMENTED
+  - Email notifications on reservation create, update, and cancel
+  - Email notification toggle on user profile
   - Dashboard shows upcoming reservations and recent activity
   - NOT YET: Automated email reminders 15 minutes before reservation
   - NOT YET: Time-expiration alerts
@@ -698,7 +755,7 @@ CRITERIA: Database (20 pts)
   - MongoDB with Mongoose ODM — fully implemented
   - 3 complete models: User, Reservation, Lab
   - All schemas have proper types, validators, indexes, and refs
-  - Seed script provides 6 users, 5 labs, 7 reservations (exceeds
+  - Seed script provides 13 users, 5 labs, 25 reservations (exceeds
     the minimum 5 sample data per feature)
   - All database files in src/models/ (model folder)
   - Password hashing with bcrypt pre-save hook
@@ -763,10 +820,11 @@ ESTIMATED SCORE: 75/75
 These features were proposed in Phase 0 but are NOT required for Phase 2
 grading. They may be relevant for Phase 3 or future development:
 
-1. AUTOMATED EMAIL NOTIFICATIONS
+1. AUTOMATED EMAIL REMINDERS
    - Send email reminders 15 min before reservation start
    - Alert users when reservation time is about to expire
-   - Requires: email service (e.g., Nodemailer + SMTP or SendGrid)
+   - Note: Basic email notifications (create/update/cancel) are already
+     implemented via Nodemailer. Timed reminders require a scheduled job.
 
 2. PC MAINTENANCE STATUS
    - Allow technicians to mark individual PCs as "Under Maintenance"
