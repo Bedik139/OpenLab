@@ -189,7 +189,6 @@ function initRegisterPage() {
     var studentId = $('#studentId').val().trim();
     var email = $('#email').val().trim();
     var college = $('#college').val();
-    var accountType = $('#accountType').val();
     var pass = $('#password').val();
     var confirmPass = $('#confirmPassword').val();
 
@@ -199,7 +198,6 @@ function initRegisterPage() {
     var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email || !emailRegex.test(email)) { $error.text('Please enter a valid email address.').show(); $('#email').focus(); return; }
     if (!college) { $error.text('Please select your college.').show(); $('#college').focus(); return; }
-    if (!accountType) { $error.text('Please select an account type.').show(); $('#accountType').focus(); return; }
     if (pass.length < 8) { $error.text('Password must be at least 8 characters.').show(); $('#password').focus(); return; }
     if (pass !== confirmPass) { $error.text('Passwords do not match.').show(); $('#confirmPassword').focus(); return; }
 
@@ -212,7 +210,6 @@ function initRegisterPage() {
         studentId: studentId,
         email: email,
         college: college,
-        accountType: accountType,
         password: pass
       })
     })
