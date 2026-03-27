@@ -25,7 +25,7 @@
 // TODO: Implement the above
 
 const mongoose = require('mongoose'); // call mongoose to interact with MongoDB
-const bcrypt = require('bcrypt'); // for hashing passwords
+const bcrypt = require('bcryptjs');
 
 // This is the schema for our User model
 const userSchema = new mongoose.Schema({
