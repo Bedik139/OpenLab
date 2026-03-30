@@ -949,12 +949,187 @@ function initUserSearch() {
 
 
 // =============================================================================
+// REGISTER TECHNICIAN PAGE
+// =============================================================================
+
+function initRegisterTechPage() {
+  var $form = $('#registerTechForm');
+  if (!$form.length) return;
+
+  $form.on('submit', function(e) {
+    e.preventDefault();
+    var $error = $('#registerTechError');
+    var $success = $('#registerTechSuccess');
+    $error.hide().text('');
+    $success.hide().text('');
+
+    var firstName = $('#techFirstName').val().trim();
+    var lastName = $('#techLastName').val().trim();
+    var studentId = $('#techStudentId').val().trim();
+    var email = $('#techEmail').val().trim();
+    var pass = $('#techPassword').val();
+    var confirmPass = $('#techConfirmPassword').val();
+
+    if (!firstName) { $error.text('First name is required.').show(); return; }
+    if (!lastName) { $error.text('Last name is required.').show(); return; }
+    if (!/^[0-9]{8}$/.test(studentId)) { $error.text('ID number must be exactly 8 digits.').show(); return; }
+    var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailRegex.test(email)) { $error.text('Please enter a valid email address.').show(); return; }
+    if (pass.length < 8) { $error.text('Password must be at least 8 characters.').show(); return; }
+    if (pass !== confirmPass) { $error.text('Passwords do not match.').show(); return; }
+
+    fetch('/api/register-tech', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        firstName: firstName,
+        lastName: lastName,
+        studentId: studentId,
+        email: email,
+        password: pass
+      })
+    })
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+      if (data.success) {
+        $success.text('Technician account for ' + data.technician.firstName + ' ' + data.technician.lastName + ' created successfully!').show();
+        $form[0].reset();
+      } else {
+        $error.text(data.error || 'Registration failed.').show();
+      }
+    })
+    .catch(function() {
+      $error.text('Registration failed. Please try again.').show();
+    });
+  });
+}
+
+
+// =============================================================================
 // WALK-IN PAGE — CREATE & REMOVE
 // =============================================================================
 
 function initWalkInPage() {
   var $confirmBtn = $('#walkinConfirmBtn');
   if (!$confirmBtn.length) return;
+
+  // Track whether a valid student has been looked up
+  var walkinStudentId = null;
+
+  // --- Helper: show found student info ---
+  function showStudentInfo(s) {
+    walkinStudentId = s.studentId;
+    var initials = (s.firstName ? s.firstName[0] : '') + (s.lastName ? s.lastName[0] : '');
+    $('#studentInitials').text(initials);
+    $('#studentName').text(s.firstName + ' ' + s.lastName);
+    $('#studentEmail').text(s.email);
+    $('#studentCollege').text(s.college || 'N/A');
+    $('#studentInfoCard').show();
+    $('#walkinRegisterForm').hide();
+    updateSummary();
+  }
+
+  // --- Student Lookup ---
+  $('#lookupStudentBtn').on('click', function() {
+    var studentId = $('#walkinStudentId').val().trim();
+    var $error = $('#studentLookupError');
+    var $info = $('#studentInfoCard');
+    $error.hide().text('');
+    $info.hide();
+    $('#walkinRegisterForm').hide();
+    walkinStudentId = null;
+    updateSummary();
+
+    if (!studentId || !/^[0-9]{8}$/.test(studentId)) {
+      $error.text('Please enter a valid 8-digit Student ID.').show();
+      return;
+    }
+
+    fetch('/api/walkin/lookup-student?studentId=' + encodeURIComponent(studentId))
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+      if (data.success && data.student) {
+        showStudentInfo(data.student);
+      } else {
+        // Student not found — show inline registration form
+        $error.text('Student not found. Register them below to continue.').show();
+        $('#walkinRegisterForm').show();
+        $('#regFirstName').val('').focus();
+        $('#regLastName').val('');
+        $('#regEmail').val('');
+        $('#regCollege').val('');
+        $('#regPassword').val('');
+        $('#regConfirmPassword').val('');
+        $('#regStudentError').hide();
+      }
+    })
+    .catch(function() {
+      $error.text('Failed to look up student. Please try again.').show();
+    });
+  });
+
+  // --- Register student inline ---
+  $('#regStudentBtn').on('click', function() {
+    var $regError = $('#regStudentError');
+    $regError.hide().text('');
+
+    var studentId = $('#walkinStudentId').val().trim();
+    var firstName = $('#regFirstName').val().trim();
+    var lastName = $('#regLastName').val().trim();
+    var email = $('#regEmail').val().trim();
+    var college = $('#regCollege').val();
+    var pass = $('#regPassword').val();
+    var confirmPass = $('#regConfirmPassword').val();
+
+    if (!firstName) { $regError.text('First name is required.').show(); return; }
+    if (!lastName) { $regError.text('Last name is required.').show(); return; }
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { $regError.text('Please enter a valid email address.').show(); return; }
+    if (!college) { $regError.text('Please select a college.').show(); return; }
+    if (!pass || pass.length < 8) { $regError.text('Password must be at least 8 characters.').show(); return; }
+    if (pass !== confirmPass) { $regError.text('Passwords do not match.').show(); return; }
+
+    fetch('/api/walkin/register-student', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        firstName: firstName,
+        lastName: lastName,
+        studentId: studentId,
+        email: email,
+        college: college,
+        password: pass
+      })
+    })
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+      if (data.success && data.student) {
+        $('#studentLookupError').hide();
+        showStudentInfo(data.student);
+      } else {
+        $regError.text(data.error || 'Registration failed.').show();
+      }
+    })
+    .catch(function() {
+      $regError.text('Registration failed. Please try again.').show();
+    });
+  });
+
+  // Allow Enter key in studentId field to trigger lookup
+  $('#walkinStudentId').on('keypress', function(e) {
+    if (e.which === 13) {
+      e.preventDefault();
+      $('#lookupStudentBtn').click();
+    }
+  });
+
+  // Clear student when ID field changes
+  $('#walkinStudentId').on('input', function() {
+    walkinStudentId = null;
+    $('#studentInfoCard').hide();
+    $('#studentLookupError').hide();
+    $('#walkinRegisterForm').hide();
+    updateSummary();
+  });
 
   // --- Helper: get all selected time slot labels ---
   function getSelectedSlots() {
@@ -984,11 +1159,11 @@ function initWalkInPage() {
       $('#summaryDuration').text((count * 30) + ' min (' + count + ' slots)');
     }
 
-    var canConfirm = seat && count > 0;
+    var canConfirm = walkinStudentId && seat && count > 0;
     $confirmBtn.prop('disabled', !canConfirm)
       .text(canConfirm
         ? 'Confirm ' + count + ' Slot' + (count > 1 ? 's' : '')
-        : (seat ? 'Select Time Slots' : 'Select a Seat to Continue'));
+        : (!walkinStudentId ? 'Look Up a Student to Continue' : (seat ? 'Select Time Slots' : 'Select a Seat to Continue')));
   }
 
   // --- Time slot chip click (auto-fill consecutive slots) ---
@@ -1080,6 +1255,8 @@ function initWalkInPage() {
 
   // --- Confirm walk-in reservation ---
   $confirmBtn.on('click', function() {
+    if (!walkinStudentId) { alert('Please look up a student first.'); return; }
+
     var labCode = $(this).data('lab');
     var seat = $('.seat.selected').attr('data-seat');
     if (!seat) { alert('Please select a seat.'); return; }
@@ -1094,6 +1271,7 @@ function initWalkInPage() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        studentId: walkinStudentId,
         lab: labCode,
         seat: seat,
         date: date,
@@ -1186,7 +1364,7 @@ function initWalkInPage() {
 function initPagination() {
   if ($('.pagination').length === 0) return;
 
-  var itemsPerPage = 5;
+  var itemsPerPage = $('.user-card').length ? 8 : 5;
   var currentPage = 1;
 
   // Get all paginatable items and mark them as included initially
@@ -1347,6 +1525,8 @@ $(document).ready(function() {
     initRegisterPage();
   } else if (path === '/reservations' || path === '/reservations/') {
     initReservationsPage();
+  } else if (path === '/register-tech' || path === '/register-tech/') {
+    initRegisterTechPage();
   } else if (path === '/walkin' || path === '/walkin/') {
     initWalkInPage();
   } else if (path.indexOf('/reserve') > -1) {

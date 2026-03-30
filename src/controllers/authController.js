@@ -145,12 +145,8 @@ const register = async (req, res) => {
             return res.status(400).json({ error: 'Password must be at least 8 characters long.' });
         }
         const validColleges = ['CCS', 'CLA', 'COB', 'COE', 'COS', 'GCOE', 'SOE', 'BAGCED'];
-        if (accountType !== 'technician' && (!college || !validColleges.includes(college))) {
+        if (!college || !validColleges.includes(college)) {
             return res.status(400).json({ error: 'Please select a valid college.' });
-        }
-        const validAccountTypes = ['student', 'technician'];
-        if (accountType && !validAccountTypes.includes(accountType)) {
-            return res.status(400).json({ error: 'Invalid account type.' });
         }
 
         // Check if email already exists
@@ -167,15 +163,15 @@ const register = async (req, res) => {
             }
         }
 
-        // Create new User document 
-        // Note: Password hashing should ideally be handled by a pre-save hook in the User model!
+        // Create new User document — public registration always creates a student account
+        // Technician accounts can only be created by existing technicians via /api/register-tech
         const newUser = new User({
             firstName,
             lastName,
             studentId,
             email: email.toLowerCase(),
             college,
-            accountType: accountType || 'student', // default to student if not provided
+            accountType: 'student',
             password
         });
 
@@ -204,6 +200,73 @@ const register = async (req, res) => {
     }
 };
 
+// 3b. registerTechnician(req, res) — allows a logged-in tech to register another tech
+const registerTechnician = async (req, res) => {
+    try {
+        const { firstName, lastName, studentId, email, password } = req.body;
+
+        // Back-end validation
+        if (!firstName || !firstName.trim()) {
+            return res.status(400).json({ error: 'First name is required.' });
+        }
+        if (!lastName || !lastName.trim()) {
+            return res.status(400).json({ error: 'Last name is required.' });
+        }
+        if (!email || !email.trim()) {
+            return res.status(400).json({ error: 'Email is required.' });
+        }
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({ error: 'Please provide a valid email address.' });
+        }
+        if (!studentId || !/^[0-9]{8}$/.test(studentId)) {
+            return res.status(400).json({ error: 'ID number must be exactly 8 digits.' });
+        }
+        if (!password || password.length < 8) {
+            return res.status(400).json({ error: 'Password must be at least 8 characters long.' });
+        }
+
+        // Check for duplicate email
+        const existingEmail = await User.findOne({ email: email.toLowerCase() });
+        if (existingEmail) {
+            return res.status(400).json({ error: 'Email is already in use.' });
+        }
+
+        // Check for duplicate ID
+        const existingId = await User.findOne({ studentId });
+        if (existingId) {
+            return res.status(400).json({ error: 'ID number is already registered.' });
+        }
+
+        // Create new technician account
+        const newTech = new User({
+            firstName,
+            lastName,
+            studentId,
+            email: email.toLowerCase(),
+            accountType: 'technician',
+            password
+        });
+
+        await newTech.save();
+
+        return res.status(201).json({
+            success: true,
+            message: 'Technician account created successfully.',
+            technician: {
+                firstName: newTech.firstName,
+                lastName: newTech.lastName,
+                email: newTech.email,
+                studentId: newTech.studentId
+            }
+        });
+
+    } catch (error) {
+        console.error('Register Technician Error:', error);
+        return res.status(500).json({ error: 'Internal server error during technician registration' });
+    }
+};
+
 // 4. logout(req, res)
 const logout = (req, res) => {
     req.session.destroy((err) => {
@@ -219,4 +282,4 @@ const logout = (req, res) => {
 };
 
 // 5. Export functions
-module.exports = { login, register, logout };
+module.exports = { login, register, registerTechnician, logout };

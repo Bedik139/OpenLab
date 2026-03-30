@@ -316,9 +316,17 @@ router.get('/reserve', async (req, res) => {
 
     // Handle edit mode
     let editReservation = null;
+    let editOwner = null;
     if (editId) {
-        const editRes = await Reservation.findById(editId).lean();
+        const editRes = await Reservation.findById(editId).populate('user', 'firstName lastName email studentId college').lean();
         if (editRes) {
+            // Security: only the owner or a technician can edit
+            const isTechnician = req.session.user && req.session.user.accountType === 'technician';
+            const isOwner = req.session.user && editRes.user && editRes.user._id.toString() === req.session.user._id.toString();
+            if (!isOwner && !isTechnician) {
+                return res.redirect('/reservations');
+            }
+
             editReservation = {
                 _id: editRes._id,
                 seat: editRes.seat,
@@ -331,6 +339,10 @@ router.get('/reserve', async (req, res) => {
             timeSlots.forEach(ts => {
                 ts.selected = editSlotSet.has(ts.label);
             });
+            // If tech is editing someone else's reservation, show the owner's info
+            if (isTechnician && !isOwner && editRes.user) {
+                editOwner = editRes.user;
+            }
         }
     }
 
@@ -350,7 +362,8 @@ router.get('/reserve', async (req, res) => {
         today,
         maxDate,
         summaryDate,
-        editReservation
+        editReservation,
+        editOwner
     });
 });
 
@@ -428,6 +441,15 @@ router.get('/users', authMiddleware, async (req, res) => {
 });
 
 // Technician Pages (Require Technician Account)
+router.get('/register-tech', techMiddleware, (req, res) => {
+    res.render('register-tech', {
+        layout: 'dashboard',
+        title: 'Register Technician',
+        activePage: 'register-tech',
+        containerClass: 'dashboard-container'
+    });
+});
+
 router.get('/walkin', techMiddleware, async (req, res) => {
     const labCode = req.query.lab;
 
@@ -502,6 +524,7 @@ router.get('/walkin', techMiddleware, async (req, res) => {
 // ==========================================
 router.post('/api/login', authController.login);
 router.post('/api/register', authController.register);
+router.post('/api/register-tech', techMiddleware, authController.registerTechnician);
 router.post('/api/logout', authController.logout);
 
 
@@ -540,6 +563,8 @@ router.delete('/api/profile', authMiddleware, userController.deleteAccount);
 // 10. WALK-IN API ROUTES (Technicians Only)
 // ==========================================
 router.get('/api/walkin', techMiddleware, walkinController.getAll);
+router.get('/api/walkin/lookup-student', techMiddleware, walkinController.lookupStudent);
+router.post('/api/walkin/register-student', techMiddleware, walkinController.registerStudent);
 router.post('/api/walkin', techMiddleware, walkinController.create);
 router.put('/api/walkin/:id/remove', techMiddleware, walkinController.removeNoShow);
 

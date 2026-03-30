@@ -90,7 +90,19 @@
     </div>
 
     {{!-- User Info Card --}}
-    {{#if user}}
+    {{#if editOwner}}
+    <div class="panel-card user-card">
+      <h4>Editing Reservation for</h4>
+      <div class="user-info">
+        <div class="user-avatar">{{getInitials editOwner.firstName editOwner.lastName}}</div>
+        <div class="user-details">
+          <span class="user-name">{{editOwner.firstName}} {{editOwner.lastName}}</span>
+          <span class="user-id">ID: {{editOwner.studentId}}</span>
+          <span class="user-college">{{editOwner.college}}</span>
+        </div>
+      </div>
+    </div>
+    {{else if user}}
     <div class="panel-card user-card">
       <h4>Reserving as</h4>
       <div class="user-info">

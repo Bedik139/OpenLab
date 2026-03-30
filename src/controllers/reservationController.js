@@ -221,6 +221,30 @@ const update = async (req, res) => {
         }
         if (anonymous !== undefined) reservation.isAnonymous = anonymous;
 
+        // Check for double-booking with the updated fields (exclude this reservation)
+        const checkDate = reservation.date;
+        const checkSlots = reservation.timeSlots;
+        const checkSeat = reservation.seat;
+        const checkLab = reservation.lab;
+        const startOfDay = new Date(checkDate);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(checkDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        const conflicting = await Reservation.findOne({
+            _id: { $ne: reservation._id },
+            lab: checkLab,
+            seat: checkSeat,
+            date: { $gte: startOfDay, $lte: endOfDay },
+            timeSlots: { $in: checkSlots },
+            status: 'upcoming'
+        });
+        if (conflicting) {
+            const overlap = conflicting.timeSlots.filter(s => checkSlots.includes(s));
+            return res.status(400).json({
+                error: 'Seat ' + checkSeat + ' is already reserved for "' + overlap[0] + '". Please choose a different slot.'
+            });
+        }
+
         await reservation.save();
 
         // Send email notification

@@ -13,6 +13,59 @@
         <span class="availability-badge">{{lab.available}} seats available</span>
       </div>
 
+      {{!-- Student Lookup --}}
+      <div class="time-selection">
+        <label>Student ID <span class="required-mark">*</span></label>
+        <div class="student-lookup-row">
+          <input type="text" id="walkinStudentId" placeholder="Enter 8-digit Student ID" pattern="[0-9]{8}" maxlength="8" class="reg-tech-input input-flex">
+          <button type="button" id="lookupStudentBtn" class="confirm-btn confirm-btn-auto">Look Up</button>
+        </div>
+        <div id="studentLookupError" class="student-lookup-error"></div>
+        <div id="studentInfoCard" class="student-info-card">
+          <div class="student-info-row">
+            <div class="student-avatar" id="studentInitials"></div>
+            <div>
+              <div class="student-detail-name" id="studentName"></div>
+              <div class="student-detail-email" id="studentEmail"></div>
+              <div class="student-detail-college" id="studentCollege"></div>
+            </div>
+          </div>
+        </div>
+
+        {{!-- Inline Student Registration (shown when student not found) --}}
+        <div id="walkinRegisterForm" class="walkin-register-form">
+          <h4 class="walkin-register-title">Register New Student</h4>
+          <div class="walkin-register-field input-row-tight">
+            <input type="text" id="regFirstName" placeholder="First Name" class="reg-tech-input input-flex">
+            <input type="text" id="regLastName" placeholder="Last Name" class="reg-tech-input input-flex">
+          </div>
+          <div class="walkin-register-field">
+            <input type="email" id="regEmail" placeholder="student@dlsu.edu.ph" class="reg-tech-input">
+          </div>
+          <div class="walkin-register-field">
+            <select id="regCollege" class="reg-tech-input">
+              <option value="" disabled selected>Select College</option>
+              <option value="CCS">College of Computer Studies</option>
+              <option value="CLA">College of Liberal Arts</option>
+              <option value="COB">College of Business</option>
+              <option value="COE">College of Engineering</option>
+              <option value="COS">College of Science</option>
+              <option value="GCOE">Gokongwei College of Engineering</option>
+              <option value="SOE">School of Economics</option>
+              <option value="BAGCED">Br. Andrew Gonzalez College of Education</option>
+            </select>
+          </div>
+          <div class="walkin-register-field input-row-tight">
+            <input type="password" id="regPassword" placeholder="Password (min 8 chars)" class="reg-tech-input input-flex">
+            <input type="password" id="regConfirmPassword" placeholder="Confirm Password" class="reg-tech-input input-flex">
+          </div>
+          <div id="regStudentError" class="walkin-register-error"></div>
+          <button type="button" id="regStudentBtn" class="confirm-btn confirm-btn-sm confirm-btn-full">
+            Register &amp; Select Student
+          </button>
+        </div>
+      </div>
+
       {{!-- Time Selection --}}
       <div class="time-selection">
         <label>Select Date</label>
@@ -70,12 +123,13 @@
         <h4>Walk-In Rules</h4>
         <ul>
           <li>Each slot is 30 minutes</li>
-          <li>Reservation is made under the technician's name</li>
+          <li>Student must be registered in the system</li>
+          <li>Reservation is made under the student's account</li>
           <li>No-shows can be removed within 10 minutes</li>
         </ul>
       </div>
       <button class="confirm-btn" id="walkinConfirmBtn" disabled data-lab="{{lab.code}}">
-        Select a Seat to Continue
+        Look Up a Student to Continue
       </button>
       <a href="/walkin" class="back-link">Back to Lab Selection</a>
     </div>
@@ -83,13 +137,13 @@
     {{!-- Technician Info Card --}}
     {{#if user}}
     <div class="panel-card user-card">
-      <h4>Reserving as</h4>
+      <h4>Technician on Duty</h4>
       <div class="user-info">
         <div class="user-avatar">{{getInitials user.firstName user.lastName}}</div>
         <div class="user-details">
           <span class="user-name">{{user.firstName}} {{user.lastName}}</span>
           <span class="user-id">ID: {{user.studentId}}</span>
-          <span class="user-college">{{user.college}}</span>
+          <span class="user-college">Technician</span>
         </div>
       </div>
     </div>

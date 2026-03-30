@@ -12,6 +12,7 @@
         {{#if (eq user.accountType "technician")}}
           <a href="/reservations"{{#if (eq activePage "reservations")}} class="active"{{/if}}>All Reservations</a>
           <a href="/walkin"{{#if (eq activePage "walkin")}} class="active"{{/if}}>Walk-In</a>
+          <a href="/register-tech"{{#if (eq activePage "register-tech")}} class="active"{{/if}}>Register Tech</a>
         {{else}}
           <a href="/reservations"{{#if (eq activePage "reservations")}} class="active"{{/if}}>My Reservations</a>
         {{/if}}

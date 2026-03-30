@@ -1,0 +1,54 @@
+{{!-- Register Technician page (technician only) --}}
+<div class="page-header">
+  <h1>Register Technician</h1>
+  <p>Create a new technician account</p>
+</div>
+
+<div class="reserve-layout register-tech-layout">
+  <div class="seat-selection-panel register-tech-panel">
+    <div class="panel-card">
+      <div class="panel-header">
+        <h3>New Technician Account</h3>
+      </div>
+      <form id="registerTechForm" class="register-tech-form">
+        <div class="time-selection">
+          <label>Name</label>
+          <div class="input-row">
+            <input type="text" id="techFirstName" name="firstName" placeholder="First Name" required
+                   class="reg-tech-input input-flex">
+            <input type="text" id="techLastName" name="lastName" placeholder="Last Name" required
+                   class="reg-tech-input input-flex">
+          </div>
+        </div>
+        <div class="time-selection">
+          <label>Employee / ID Number</label>
+          <input type="text" id="techStudentId" name="studentId" placeholder="12310004" pattern="[0-9]{8}" maxlength="8" required
+                 class="reg-tech-input">
+          <span class="input-hint">Must be exactly 8 digits</span>
+        </div>
+        <div class="time-selection">
+          <label>Email</label>
+          <input type="email" id="techEmail" name="email" placeholder="technician@gmail.com" required
+                 class="reg-tech-input">
+        </div>
+        <div class="time-selection">
+          <label>Password</label>
+          <input type="password" id="techPassword" name="password" placeholder="Create a strong password (min 8 chars)" minlength="8" required
+                 class="reg-tech-input">
+        </div>
+        <div class="time-selection">
+          <label>Confirm Password</label>
+          <input type="password" id="techConfirmPassword" name="confirmPassword" placeholder="Re-enter password" required
+                 class="reg-tech-input">
+        </div>
+        <div id="registerTechError" class="form-error-msg"></div>
+        <div id="registerTechSuccess" class="form-success-msg"></div>
+        <div class="form-submit-wrapper">
+          <button type="submit" class="confirm-btn confirm-btn-full">
+            Register Technician
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

@@ -57,10 +57,100 @@ const getAll = async (req, res) => {
     }
 };
 
+// 2b. lookupStudent(req, res) — find student by studentId for walk-in
+const lookupStudent = async (req, res) => {
+    try {
+        const { studentId } = req.query;
+        if (!studentId || !/^[0-9]{8}$/.test(studentId)) {
+            return res.status(400).json({ error: 'Please enter a valid 8-digit Student ID.' });
+        }
+
+        const student = await User.findOne({ studentId, accountType: 'student' })
+            .select('firstName lastName email studentId college')
+            .lean();
+
+        if (!student) {
+            return res.status(404).json({ error: 'No student found with ID ' + studentId + '. The student must be registered in the system.' });
+        }
+
+        return res.json({ success: true, student });
+    } catch (error) {
+        console.error('Error looking up student:', error);
+        return res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+// 2c. registerStudent(req, res) — tech registers a new student during walk-in (does NOT change tech session)
+const registerStudent = async (req, res) => {
+    try {
+        const { firstName, lastName, studentId, email, college, password } = req.body;
+
+        if (!firstName || !firstName.trim()) {
+            return res.status(400).json({ error: 'First name is required.' });
+        }
+        if (!lastName || !lastName.trim()) {
+            return res.status(400).json({ error: 'Last name is required.' });
+        }
+        if (!studentId || !/^[0-9]{8}$/.test(studentId)) {
+            return res.status(400).json({ error: 'Student ID must be exactly 8 digits.' });
+        }
+        if (!email || !email.trim()) {
+            return res.status(400).json({ error: 'Email is required.' });
+        }
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({ error: 'Please provide a valid email address.' });
+        }
+        const validColleges = ['CCS', 'CLA', 'COB', 'COE', 'COS', 'GCOE', 'SOE', 'BAGCED'];
+        if (!college || !validColleges.includes(college)) {
+            return res.status(400).json({ error: 'Please select a valid college.' });
+        }
+        if (!password || password.length < 8) {
+            return res.status(400).json({ error: 'Password must be at least 8 characters.' });
+        }
+
+        const existingEmail = await User.findOne({ email: email.toLowerCase() });
+        if (existingEmail) {
+            return res.status(400).json({ error: 'Email is already in use.' });
+        }
+
+        const existingId = await User.findOne({ studentId });
+        if (existingId) {
+            return res.status(400).json({ error: 'Student ID is already registered.' });
+        }
+
+        const newStudent = new User({
+            firstName,
+            lastName,
+            studentId,
+            email: email.toLowerCase(),
+            college,
+            accountType: 'student',
+            password
+        });
+
+        await newStudent.save();
+
+        return res.status(201).json({
+            success: true,
+            student: {
+                firstName: newStudent.firstName,
+                lastName: newStudent.lastName,
+                email: newStudent.email,
+                studentId: newStudent.studentId,
+                college: newStudent.college
+            }
+        });
+    } catch (error) {
+        console.error('Error registering student (walk-in):', error);
+        return res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
 // 3. create(req, res)
 const create = async (req, res) => {
     try {
-        const { lab, seat, date, timeSlot, timeSlots } = req.body;
+        const { studentId, lab, seat, date, timeSlot, timeSlots } = req.body;
 
         // Normalize to an array of slots
         const slots = timeSlots && Array.isArray(timeSlots) && timeSlots.length > 0
@@ -92,6 +182,16 @@ const create = async (req, res) => {
             return res.status(401).json({ error: 'Unauthorized: Please log in as a technician' });
         }
 
+        // Validate studentId — walk-in must be for a registered student
+        if (!studentId || !/^[0-9]{8}$/.test(studentId)) {
+            return res.status(400).json({ error: 'A valid 8-digit Student ID is required for walk-in reservations.' });
+        }
+
+        const student = await User.findOne({ studentId, accountType: 'student' });
+        if (!student) {
+            return res.status(404).json({ error: 'No registered student found with ID ' + studentId + '. The student must register first.' });
+        }
+
         // Look up lab info from Lab model to get the building name
         const labInfo = await Lab.findOne({ code: lab });
         if (!labInfo) {
@@ -118,10 +218,10 @@ const create = async (req, res) => {
             });
         }
 
-        // Create the walk-in reservation under the technician's account
+        // Create the walk-in reservation under the STUDENT's account (not the tech's)
         const techId = req.session.user._id;
         const newReservation = new Reservation({
-            user: techId,
+            user: student._id,
             lab: lab,
             building: labInfo.building,
             seat,
@@ -134,10 +234,9 @@ const create = async (req, res) => {
 
         await newReservation.save();
 
-        // Send email notification to the technician
-        const techUser = await User.findById(techId).select('firstName email notifications').lean();
-        if (techUser) {
-            emailService.notifyReservationCreated(techUser, newReservation).catch(() => {});
+        // Send email notification to the student
+        if (student.notifications) {
+            emailService.notifyReservationCreated(student, newReservation).catch(() => {});
         }
 
         return res.status(201).json({ success: true, count: slots.length, reservation: newReservation });
@@ -208,8 +307,10 @@ const removeNoShow = async (req, res) => {
 };
 
 // 5. Export all functions
-module.exports = { 
-    getAll, 
-    create, 
-    removeNoShow 
+module.exports = {
+    getAll,
+    lookupStudent,
+    registerStudent,
+    create,
+    removeNoShow
 };
