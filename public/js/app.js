@@ -870,19 +870,14 @@ function initChangePasswordPage() {
     var currentPassword = $('#currentPassword').val();
     var newPassword = $('#newPassword').val();
     var confirmPassword = $('#confirmPassword').val();
-    var $error = $('#passwordError');
-    var $success = $('#passwordSuccess');
-    $error.hide().text('');
-    $success.hide().text('');
-
     if (!currentPassword || !newPassword || !confirmPassword) {
-      $error.text('All fields are required.').show(); return;
+      alert('All fields are required.'); return;
     }
     if (newPassword.length < 8) {
-      $error.text('New password must be at least 8 characters long.').show(); return;
+      alert('New password must be at least 8 characters long.'); return;
     }
     if (newPassword !== confirmPassword) {
-      $error.text('New password and confirmation do not match.').show(); return;
+      alert('New password and confirmation do not match.'); return;
     }
 
     fetch('/api/profile/password', {
@@ -899,11 +894,11 @@ function initChangePasswordPage() {
         alert('Password changed successfully!');
         window.location.href = '/profile';
       } else {
-        $error.text(data.error || 'Failed to change password.').show();
+        alert(data.error || 'Failed to change password.');
       }
     })
     .catch(function() {
-      $error.text('Failed to change password.').show();
+      alert('Failed to change password.');
     });
   });
 }
