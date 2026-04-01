@@ -62,10 +62,29 @@ Purpose:
 3.2  DATABASE MODELS AND SCHEMA DESIGN
 --------------------------------------------------------------------------------
 
-Prompt 1:
+Prompt 1: timeSlot: { type: String, required: true }, could you suggest how to make this have an array, and make it contain at least one string.
 
-Purpose:
+Purpose: Transformation of optional string to a required field
 
+
+Prompt 2: How much salt is best for this hashing code?
+
+Purpose: Making sure we get the right balance of security and performance
+
+
+Prompt 3: How to allow seed.js file to read our env file? 
+
+Purpose: I want seed.js to read my database URI and other sensitive settings from the .env file so I don’t have to hardcode them in the code.
+
+
+Prompt 4: How to trigger my signalHandler in conn.js?
+
+Purpose: This helps the app in shutting down the connection properly.
+
+
+Prompt 5: Help me setup MongoDB Atlas
+
+Purpose: MongoDB Atlas is the cloud-hosted version of MongoDB. It allows our group to access it simultaneously while preserving security.
 
 --------------------------------------------------------------------------------
 3.3  AUTHENTICATION AND SESSION MANAGEMENT
@@ -79,7 +98,7 @@ Purpose:
 3.4  RESERVATION SYSTEM LOGIC
 --------------------------------------------------------------------------------
 
-Prompt 1:
+Prompt 1: 
 
 Purpose:
 
@@ -112,9 +131,9 @@ Purpose:
 3.8  BUG FIXING AND DEBUGGING
 --------------------------------------------------------------------------------
 
-Prompt 21:
+Prompt 1: Why is my bcrypt not working? 
 
-Purpose:
+Purpose: The installed bcrypt didn't match our Nodejs' version. AI suggested bcryptjs.
 
 
 ================================================================================
