@@ -1,0 +1,148 @@
+================================================================================
+                        AI PROMPT DOCUMENTATION
+              OpenLab Computer Reservation System (CRS)
+================================================================================
+
+Project Title  : OpenLab Computer Reservation System
+Course         : CCAPDEV (Web Application Development)
+Tech Stack     : Node.js, Express.js, MongoDB, Handlebars, Vanilla JS/CSS
+Repository     : OpenLab-ComputerReservation-Lab
+
+================================================================================
+TABLE OF CONTENTS
+================================================================================
+
+  1. Overview of AI Usage
+  2. Tools and Models Used
+  3. Prompts Used During Development
+     3.1  Project Setup and Architecture
+     3.2  Database Models and Schema Design
+     3.3  Authentication and Session Management
+     3.4  Reservation System Logic
+     3.5  Frontend and UI Development
+     3.6  Email Notification Service
+     3.7  Walk-In Reservation Feature
+     3.8  Bug Fixing and Debugging
+  4. How AI Outputs Were Integrated
+  5. Limitations and Manual Adjustments
+  6. Ethical Considerations
+
+================================================================================
+1. OVERVIEW OF AI USAGE
+================================================================================
+
+AI-assisted tools were used throughout the development of the OpenLab Computer
+Reservation System to accelerate development, troubleshoot issues, and improve
+code quality. AI was used as a collaborative coding assistant rather than a
+replacement for developer understanding. All AI-generated code was reviewed,
+tested, and modified before integration into the project.
+
+================================================================================
+2. TOOLS AND MODELS USED
+================================================================================
+
+  Tool/Platform       : Claude (Anthropic)
+  Model               : Claude Sonnet 4.5
+  Usage Context       :
+
+================================================================================
+3. PROMPTS USED DURING DEVELOPMENT
+================================================================================
+
+--------------------------------------------------------------------------------
+3.1  PROJECT SETUP AND ARCHITECTURE
+--------------------------------------------------------------------------------
+
+Prompt 1:
+
+Purpose:
+
+
+--------------------------------------------------------------------------------
+3.2  DATABASE MODELS AND SCHEMA DESIGN
+--------------------------------------------------------------------------------
+
+Prompt 1:
+
+Purpose:
+
+
+--------------------------------------------------------------------------------
+3.3  AUTHENTICATION AND SESSION MANAGEMENT
+--------------------------------------------------------------------------------
+
+Prompt 1:
+
+Purpose:
+
+--------------------------------------------------------------------------------
+3.4  RESERVATION SYSTEM LOGIC
+--------------------------------------------------------------------------------
+
+Prompt 1:
+
+Purpose:
+
+
+--------------------------------------------------------------------------------
+3.5  FRONTEND AND UI DEVELOPMENT
+--------------------------------------------------------------------------------
+
+Prompt 13:
+
+Purpose:
+
+--------------------------------------------------------------------------------
+3.6  EMAIL NOTIFICATION SERVICE
+--------------------------------------------------------------------------------
+
+Prompt 18:
+
+Purpose:
+
+--------------------------------------------------------------------------------
+3.7  WALK-IN RESERVATION FEATURE
+--------------------------------------------------------------------------------
+
+Prompt 1:
+
+Purpose:
+
+--------------------------------------------------------------------------------
+3.8  BUG FIXING AND DEBUGGING
+--------------------------------------------------------------------------------
+
+Prompt 21:
+
+Purpose:
+
+
+================================================================================
+5. LIMITATIONS AND MANUAL ADJUSTMENTS
+================================================================================
+  
+
+================================================================================
+6. ETHICAL CONSIDERATIONS
+================================================================================
+
+  - TRANSPARENCY: This document serves as full disclosure of AI tool usage
+    in the development of this project.
+
+  - UNDERSTANDING: All team members understand the code that was generated
+    and can explain, modify, and debug it independently.
+
+  - ORIGINALITY: AI was used as a development accelerator, not as a means
+    to bypass learning. The architecture, design decisions, and integration
+    work represent original effort.
+
+  - ACADEMIC INTEGRITY: AI tools were used in accordance with course
+    guidelines. This documentation provides an honest account of which
+    parts of the development process involved AI assistance.
+
+  - NO SENSITIVE DATA: No real student data, credentials, or proprietary
+    information was shared with any AI tool during development.
+
+================================================================================
+                          END OF DOCUMENT
+================================================================================
