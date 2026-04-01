@@ -125,6 +125,7 @@ const getSeats = async (req, res) => {
 
                 let status = 'available';
                 let occupant = null;
+                let occupantId = null;
 
                 if (reservation) {
                     status = 'reserved';
@@ -133,13 +134,15 @@ const getSeats = async (req, res) => {
                         occupant = 'Anonymous';
                     } else {
                         occupant = reservation.user ? `${reservation.user.firstName} ${reservation.user.lastName}` : 'Unknown User';
+                        occupantId = reservation.user ? reservation.user._id : null;
                     }
                 }
 
                 seats.push({
                     id: seatId,
                     status,
-                    occupant
+                    occupant,
+                    occupantId
                 });
             }
         }

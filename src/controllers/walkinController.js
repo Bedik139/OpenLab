@@ -37,7 +37,7 @@
 const Reservation = require('../models/Reservation');
 const User = require('../models/User');
 const Lab = require('../models/Lab');
-const emailService = require('../helpers/emailService');
+
 
 // 2. getAll(req, res)
 const getAll = async (req, res) => {
@@ -97,9 +97,9 @@ const registerStudent = async (req, res) => {
         if (!email || !email.trim()) {
             return res.status(400).json({ error: 'Email is required.' });
         }
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const emailRegex = /^[^\s@]+@dlsu\.edu\.ph$/i;
         if (!emailRegex.test(email)) {
-            return res.status(400).json({ error: 'Please provide a valid email address.' });
+            return res.status(400).json({ error: 'Please use a valid DLSU email address (e.g. name@dlsu.edu.ph).' });
         }
         const validColleges = ['CCS', 'CLA', 'COB', 'COE', 'COS', 'GCOE', 'SOE', 'BAGCED'];
         if (!college || !validColleges.includes(college)) {
@@ -234,11 +234,6 @@ const create = async (req, res) => {
 
         await newReservation.save();
 
-        // Send email notification to the student
-        if (student.notifications) {
-            emailService.notifyReservationCreated(student, newReservation).catch(() => {});
-        }
-
         return res.status(201).json({ success: true, count: slots.length, reservation: newReservation });
 
     } catch (error) {
@@ -291,12 +286,6 @@ const removeNoShow = async (req, res) => {
         // Set status to cancelled (indicating a no-show)
         reservation.status = 'cancelled';
         await reservation.save();
-
-        // Notify the student their reservation was cancelled
-        const noShowUser = await User.findById(reservation.user).select('firstName email notifications').lean();
-        if (noShowUser) {
-            emailService.notifyReservationCancelled(noShowUser, reservation).catch(() => {});
-        }
 
         return res.json({ success: true, message: 'Walk-in reservation cancelled (No-show recorded).' });
 

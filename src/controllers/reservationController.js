@@ -45,7 +45,7 @@
 const Reservation = require('../models/Reservation');
 const Lab = require('../models/Lab');
 const User = require('../models/User');
-const emailService = require('../helpers/emailService');
+
 
 // 2. getAll(req, res)
 const getAll = async (req, res) => {
@@ -179,12 +179,6 @@ const create = async (req, res) => {
 
         await newReservation.save();
 
-        // Send email notification
-        const fullUser = await User.findById(user._id).select('firstName email notifications').lean();
-        if (fullUser) {
-            emailService.notifyReservationCreated(fullUser, newReservation).catch(() => {});
-        }
-
         return res.status(201).json({ success: true, count: slots.length, reservation: newReservation });
     } catch (error) {
         console.error('Error creating reservation:', error);
@@ -247,12 +241,6 @@ const update = async (req, res) => {
 
         await reservation.save();
 
-        // Send email notification
-        const resOwner = await User.findById(reservation.user).select('firstName email notifications').lean();
-        if (resOwner) {
-            emailService.notifyReservationUpdated(resOwner, reservation).catch(() => {});
-        }
-
         return res.json({ success: true, reservation });
     } catch (error) {
         console.error(`Error updating reservation ${req.params.id}:`, error);
@@ -281,12 +269,6 @@ const cancel = async (req, res) => {
         // Set status to cancelled
         reservation.status = 'cancelled';
         await reservation.save();
-
-        // Send email notification
-        const cancelledOwner = await User.findById(reservation.user).select('firstName email notifications').lean();
-        if (cancelledOwner) {
-            emailService.notifyReservationCancelled(cancelledOwner, reservation).catch(() => {});
-        }
 
         return res.json({ success: true, reservation });
     } catch (error) {

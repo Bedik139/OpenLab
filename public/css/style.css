@@ -2752,6 +2752,12 @@ body {
     cursor: not-allowed;                           /* Not clickable */
 }
 
+/* Reserved/occupied seats with a profile link show pointer cursor */
+.seat.reserved[data-occupant-id],
+.seat.occupied[data-occupant-id] {
+    cursor: pointer;
+}
+
 /* Selected seat: blue highlight with glow, scaled up. !important overrides other states */
 .seat.selected {
     background: rgba(33, 150, 243, 0.6) !important;   /* Blue bg */

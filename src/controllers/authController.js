@@ -134,9 +134,9 @@ const register = async (req, res) => {
         if (!email || !email.trim()) {
             return res.status(400).json({ error: 'Email is required.' });
         }
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const emailRegex = /^[^\s@]+@dlsu\.edu\.ph$/i;
         if (!emailRegex.test(email)) {
-            return res.status(400).json({ error: 'Please provide a valid email address.' });
+            return res.status(400).json({ error: 'Please use a valid DLSU email address (e.g. name@dlsu.edu.ph).' });
         }
         if (!studentId || !/^[0-9]{8}$/.test(studentId)) {
             return res.status(400).json({ error: 'Student ID must be exactly 8 digits.' });
@@ -215,9 +215,9 @@ const registerTechnician = async (req, res) => {
         if (!email || !email.trim()) {
             return res.status(400).json({ error: 'Email is required.' });
         }
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const emailRegex = /^[^\s@]+@dlsu\.edu\.ph$/i;
         if (!emailRegex.test(email)) {
-            return res.status(400).json({ error: 'Please provide a valid email address.' });
+            return res.status(400).json({ error: 'Please use a valid DLSU email address (e.g. name@dlsu.edu.ph).' });
         }
         if (!studentId || !/^[0-9]{8}$/.test(studentId)) {
             return res.status(400).json({ error: 'ID number must be exactly 8 digits.' });

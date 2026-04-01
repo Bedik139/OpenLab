@@ -62,9 +62,9 @@ function initLoginPage() {
       $('#email').focus();
       return;
     }
-    var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    var emailRegex = /^[^\s@]+@dlsu\.edu\.ph$/i;
     if (!emailRegex.test(email)) {
-      $error.text('Please enter a valid email address.').show();
+      $error.text('Please use a valid DLSU email (e.g. name@dlsu.edu.ph).').show();
       $('#email').focus();
       return;
     }
@@ -131,9 +131,9 @@ function initTechLoginPage() {
       $('#email').focus();
       return;
     }
-    var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    var emailRegex = /^[^\s@]+@dlsu\.edu\.ph$/i;
     if (!emailRegex.test(email)) {
-      $error.text('Please enter a valid email address.').show();
+      $error.text('Please use a valid DLSU email (e.g. name@dlsu.edu.ph).').show();
       $('#email').focus();
       return;
     }
@@ -195,8 +195,8 @@ function initRegisterPage() {
     if (!firstName) { $error.text('First name is required.').show(); $('#firstName').focus(); return; }
     if (!lastName) { $error.text('Last name is required.').show(); $('#lastName').focus(); return; }
     if (!/^[0-9]{8}$/.test(studentId)) { $error.text('Student ID must be exactly 8 digits.').show(); $('#studentId').focus(); return; }
-    var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!email || !emailRegex.test(email)) { $error.text('Please enter a valid email address.').show(); $('#email').focus(); return; }
+    var emailRegex = /^[^\s@]+@dlsu\.edu\.ph$/i;
+    if (!email || !emailRegex.test(email)) { $error.text('Please use a valid DLSU email (e.g. name@dlsu.edu.ph).').show(); $('#email').focus(); return; }
     if (!college) { $error.text('Please select your college.').show(); $('#college').focus(); return; }
     if (pass.length < 8) { $error.text('Password must be at least 8 characters.').show(); $('#password').focus(); return; }
     if (pass !== confirmPass) { $error.text('Passwords do not match.').show(); $('#confirmPassword').focus(); return; }
@@ -346,6 +346,14 @@ function initSeatSelection() {
     var seatId = $(this).attr('data-seat');
     $('#summarySeat').text(seatId);
     updateSummary();
+  });
+
+  // --- Reserved seat click: navigate to occupant's profile ---
+  $grid.on('click', '.seat.reserved, .seat.occupied', function() {
+    var occupantId = $(this).attr('data-occupant-id');
+    if (occupantId) {
+      window.open('/profile/' + occupantId, '_blank');
+    }
   });
 
   // --- Helper: disable past timeslots if selected date is today ---
@@ -525,6 +533,7 @@ function initSeatSelection() {
       // A seat is only available if it's available in ALL selected slots
       var seatStatus = {};
       var seatTooltip = {};
+      var seatOccupantId = {};
       results.forEach(function(resp) {
         var seats = (resp && resp.data && resp.data.seats) || (resp && resp.seats) || [];
         seats.forEach(function(seat) {
@@ -536,8 +545,14 @@ function initSeatSelection() {
             seatStatus[seat.id] = seat.status;
             if (seat.occupant) {
               seatTooltip[seat.id] = seat.id + ' - Reserved by ' + seat.occupant;
+              if (seat.occupantId) {
+                seatTooltip[seat.id] += ' (click to view profile)';
+              }
             } else {
               seatTooltip[seat.id] = seat.id + ' - Reserved';
+            }
+            if (seat.occupantId) {
+              seatOccupantId[seat.id] = seat.occupantId;
             }
           }
         });
@@ -549,6 +564,10 @@ function initSeatSelection() {
         var status = seatStatus[id] || 'available';
         $(this).removeClass('available occupied reserved selected').addClass(status);
         $(this).attr('title', seatTooltip[id] || id);
+        $(this).removeAttr('data-occupant-id');
+        if (seatOccupantId[id]) {
+          $(this).attr('data-occupant-id', seatOccupantId[id]);
+        }
         if (status === 'available') availableCount++;
       });
       $('.availability-badge').text(availableCount + ' seats available');
@@ -806,22 +825,6 @@ function initProfilePage() {
     window.location.href = '/changepassword';
   });
 
-  // Notifications toggle
-  $('#notificationsToggle').on('change', function() {
-    var enabled = $(this).is(':checked');
-    fetch('/api/profile/notifications', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ notifications: enabled })
-    })
-    .then(function(res) { return res.json(); })
-    .then(function(data) {
-      if (!data.success) {
-        alert(data.error || 'Failed to update notification settings.');
-      }
-    })
-    .catch(function() { alert('Failed to update notification settings.'); });
-  });
 
   // Avatar upload
   var $fileInput = $('<input>', { type: 'file', accept: 'image/png, image/jpeg, image/gif', style: 'display:none' }).appendTo('body');
@@ -973,8 +976,8 @@ function initRegisterTechPage() {
     if (!firstName) { $error.text('First name is required.').show(); return; }
     if (!lastName) { $error.text('Last name is required.').show(); return; }
     if (!/^[0-9]{8}$/.test(studentId)) { $error.text('ID number must be exactly 8 digits.').show(); return; }
-    var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!email || !emailRegex.test(email)) { $error.text('Please enter a valid email address.').show(); return; }
+    var emailRegex = /^[^\s@]+@dlsu\.edu\.ph$/i;
+    if (!email || !emailRegex.test(email)) { $error.text('Please use a valid DLSU email (e.g. name@dlsu.edu.ph).').show(); return; }
     if (pass.length < 8) { $error.text('Password must be at least 8 characters.').show(); return; }
     if (pass !== confirmPass) { $error.text('Passwords do not match.').show(); return; }
 
@@ -1083,7 +1086,7 @@ function initWalkInPage() {
 
     if (!firstName) { $regError.text('First name is required.').show(); return; }
     if (!lastName) { $regError.text('Last name is required.').show(); return; }
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { $regError.text('Please enter a valid email address.').show(); return; }
+    if (!email || !/^[^\s@]+@dlsu\.edu\.ph$/i.test(email)) { $regError.text('Please use a valid DLSU email (e.g. name@dlsu.edu.ph).').show(); return; }
     if (!college) { $regError.text('Please select a college.').show(); return; }
     if (!pass || pass.length < 8) { $regError.text('Password must be at least 8 characters.').show(); return; }
     if (pass !== confirmPass) { $regError.text('Passwords do not match.').show(); return; }
@@ -1211,6 +1214,14 @@ function initWalkInPage() {
     updateSummary();
   });
 
+  // --- Reserved seat click: navigate to occupant's profile ---
+  $('.seat-grid').on('click', '.seat.reserved, .seat.occupied', function() {
+    var occupantId = $(this).attr('data-occupant-id');
+    if (occupantId) {
+      window.open('/profile/' + occupantId, '_blank');
+    }
+  });
+
   // --- Date change ---
   $('#reserveDate').on('change', function() {
     var val = $(this).val();
@@ -1324,6 +1335,7 @@ function initWalkInPage() {
     Promise.all(fetches).then(function(results) {
       var seatStatus = {};
       var seatTooltip = {};
+      var seatOccupantId = {};
       results.forEach(function(resp) {
         var seats = (resp && resp.data && resp.data.seats) || (resp && resp.seats) || [];
         seats.forEach(function(seat) {
@@ -1333,7 +1345,17 @@ function initWalkInPage() {
           }
           if (seat.status !== 'available') {
             seatStatus[seat.id] = seat.status;
-            seatTooltip[seat.id] = seat.occupant ? seat.id + ' - Reserved by ' + seat.occupant : seat.id + ' - Reserved';
+            if (seat.occupant) {
+              seatTooltip[seat.id] = seat.id + ' - Reserved by ' + seat.occupant;
+              if (seat.occupantId) {
+                seatTooltip[seat.id] += ' (click to view profile)';
+              }
+            } else {
+              seatTooltip[seat.id] = seat.id + ' - Reserved';
+            }
+            if (seat.occupantId) {
+              seatOccupantId[seat.id] = seat.occupantId;
+            }
           }
         });
       });
@@ -1344,6 +1366,10 @@ function initWalkInPage() {
         var status = seatStatus[id] || 'available';
         $(this).removeClass('available occupied reserved selected').addClass(status);
         $(this).attr('title', seatTooltip[id] || id);
+        $(this).removeAttr('data-occupant-id');
+        if (seatOccupantId[id]) {
+          $(this).attr('data-occupant-id', seatOccupantId[id]);
+        }
         if (status === 'available') availableCount++;
       });
       $('.availability-badge').text(availableCount + ' seats available');

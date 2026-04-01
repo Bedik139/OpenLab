@@ -15,17 +15,7 @@ TABLE OF CONTENTS
   1. Overview of AI Usage
   2. Tools and Models Used
   3. Prompts Used During Development
-     3.1  Project Setup and Architecture
-     3.2  Database Models and Schema Design
-     3.3  Authentication and Session Management
-     3.4  Reservation System Logic
-     3.5  Frontend and UI Development
-     3.6  Email Notification Service
-     3.7  Walk-In Reservation Feature
-     3.8  Bug Fixing and Debugging
-  4. How AI Outputs Were Integrated
-  5. Limitations and Manual Adjustments
-  6. Ethical Considerations
+  4. Ethical Considerations
 
 ================================================================================
 1. OVERVIEW OF AI USAGE
@@ -43,102 +33,75 @@ tested, and modified before integration into the project.
 
   Tool/Platform       : Claude (Anthropic)
   Model               : Claude Sonnet 4.5
-  Usage Context       :
+
+  Tool/Platform       : Gemini (Google)
+  Model               : Gemini 3 Pro
+
 
 ================================================================================
 3. PROMPTS USED DURING DEVELOPMENT
 ================================================================================
 
---------------------------------------------------------------------------------
-3.1  PROJECT SETUP AND ARCHITECTURE
---------------------------------------------------------------------------------
+Prompt 1: Suggest me a topnav ahref for our project,
 
-Prompt 1:
+Purpose: to guide us what anchor tab to put in our topnav
 
-Purpose:
+Prompt 2: How to use Grid
 
+Purpose: to have a better UI
 
---------------------------------------------------------------------------------
-3.2  DATABASE MODELS AND SCHEMA DESIGN
---------------------------------------------------------------------------------
+Prompt 3: Suggest on how to implement the glassmorphism
 
-Prompt 1: timeSlot: { type: String, required: true }, could you suggest how to make this have an array, and make it contain at least one string.
+Purpose: to have a better UI and the overall theme of our project
+
+Prompt 4: Suggest the folder directories and paths for frontend development(for MCO1)
+
+Purpose: to make the project structure better
+
+Prompt 5: Suggest the folder directories and paths for frontend development(for MCO1)
+
+Purpose: to make the project structure better
+
+Prompt 6: timeSlot: { type: String, required: true }, could you suggest how to make this have an array, and make it contain at least one string.
 
 Purpose: Transformation of optional string to a required field
 
-
-Prompt 2: How much salt is best for this hashing code?
+Prompt 7: How much salt is best for this hashing code?
 
 Purpose: Making sure we get the right balance of security and performance
 
-
-Prompt 3: How to allow seed.js file to read our env file? 
+Prompt 8: How to allow seed.js file to read our env file? 
 
 Purpose: I want seed.js to read my database URI and other sensitive settings from the .env file so I don’t have to hardcode them in the code.
 
-
-Prompt 4: How to trigger my signalHandler in conn.js?
+Prompt 9: How to trigger my signalHandler in conn.js?
 
 Purpose: This helps the app in shutting down the connection properly.
 
-
-Prompt 5: Help me setup MongoDB Atlas
+Prompt 10: Help me setup MongoDB Atlas
 
 Purpose: MongoDB Atlas is the cloud-hosted version of MongoDB. It allows our group to access it simultaneously while preserving security.
 
---------------------------------------------------------------------------------
-3.3  AUTHENTICATION AND SESSION MANAGEMENT
---------------------------------------------------------------------------------
-
-Prompt 1:
-
-Purpose:
-
---------------------------------------------------------------------------------
-3.4  RESERVATION SYSTEM LOGIC
---------------------------------------------------------------------------------
-
-Prompt 1: 
-
-Purpose:
-
-
---------------------------------------------------------------------------------
-3.5  FRONTEND AND UI DEVELOPMENT
---------------------------------------------------------------------------------
-
-Prompt 13:
-
-Purpose:
-
---------------------------------------------------------------------------------
-3.6  EMAIL NOTIFICATION SERVICE
---------------------------------------------------------------------------------
-
-Prompt 18:
-
-Purpose:
-
---------------------------------------------------------------------------------
-3.7  WALK-IN RESERVATION FEATURE
---------------------------------------------------------------------------------
-
-Prompt 1:
-
-Purpose:
-
---------------------------------------------------------------------------------
-3.8  BUG FIXING AND DEBUGGING
---------------------------------------------------------------------------------
-
-Prompt 1: Why is my bcrypt not working? 
+Prompt 11: Why is my bcrypt not working? 
 
 Purpose: The installed bcrypt didn't match our Nodejs' version. AI suggested bcryptjs.
 
+Prompt 12: What is req and res 
 
-================================================================================
-5. LIMITATIONS AND MANUAL ADJUSTMENTS
-================================================================================
+Purpose: To understand REST API.
+
+Prompt 13: How to run on Localhost:3000
+
+Purpose: Assistance on backend development
+
+Prompt 14: How to connect mongoDB atlas to mongoDB compass 
+
+Purpose: Connecting our data to cloud
+
+Prompt 15: Render error
+
+Purpose: Debugging a deployment problem
+
   
 
 ================================================================================
@@ -147,9 +110,6 @@ Purpose: The installed bcrypt didn't match our Nodejs' version. AI suggested bcr
 
   - TRANSPARENCY: This document serves as full disclosure of AI tool usage
     in the development of this project.
-
-  - UNDERSTANDING: All team members understand the code that was generated
-    and can explain, modify, and debug it independently.
 
   - ORIGINALITY: AI was used as a development accelerator, not as a means
     to bypass learning. The architecture, design decisions, and integration
