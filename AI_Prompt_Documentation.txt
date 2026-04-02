@@ -98,6 +98,9 @@ Purpose: To keep the main server file clean by modularizing our endpoints (e.g.,
 
 Prompt 19: How to implement a global error handling middleware in Express?
 Purpose: To catch any unhandled errors across all our routes and send a consistent, clean JSON error message instead of crashing the server or leaking stack traces.
+
+Prompt 38: How to set up MVC folder architecture in Node.js?
+Purpose: To strictly separate our database schemas (Models), routing logic (Routes), and business logic (Controllers).
   
 
 ================================================================================
