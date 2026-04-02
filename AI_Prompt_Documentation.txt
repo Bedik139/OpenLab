@@ -89,6 +89,15 @@ Purpose: Connecting our data to cloud
 
 Prompt 16: Render error
 Purpose: Debugging a deployment problem
+
+Prompt 17: How to structure the main app.js and index.js files separately?
+Purpose: To separate the Express application configuration (middleware, routes) from the actual network-listening logic for a cleaner server core architecture.
+
+Prompt 18: How do I separate API routes into different files using express.Router()?
+Purpose: To keep the main server file clean by modularizing our endpoints (e.g., separating user routes, authentication routes, and lab routes into their own folders).
+
+Prompt 19: How to implement a global error handling middleware in Express?
+Purpose: To catch any unhandled errors across all our routes and send a consistent, clean JSON error message instead of crashing the server or leaking stack traces.
   
 
 ================================================================================
