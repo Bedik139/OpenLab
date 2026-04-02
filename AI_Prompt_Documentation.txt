@@ -42,66 +42,53 @@ tested, and modified before integration into the project.
 3. PROMPTS USED DURING DEVELOPMENT
 ================================================================================
 
-Prompt 1: Suggest me a topnav ahref for our project,
-
-Purpose: to guide us what anchor tab to put in our topnav
+Prompt 1: Suggest me a topnav ahref for our project
+Purpose: To guide us what anchor tabs to put in our topnav
 
 Prompt 2: How to use Grid
-
-Purpose: to have a better UI
+Purpose: To have a better UI
 
 Prompt 3: Suggest on how to implement the glassmorphism
+Purpose: To have a better UI and the overall theme of our project
 
-Purpose: to have a better UI and the overall theme of our project
+Prompt 4: Suggest the folder directories and paths for frontend development (for MCO1)
+Purpose: To make the project structure better
 
-Prompt 4: Suggest the folder directories and paths for frontend development(for MCO1)
-
-Purpose: to make the project structure better
-
-Prompt 5: Suggest the folder directories and paths for frontend development(for MCO1)
-
-Purpose: to make the project structure better
-
-Prompt 6: timeSlot: { type: String, required: true }, could you suggest how to make this have an array, and make it contain at least one string.
-
+Prompt 5: timeSlot: { type: String, required: true }, could you suggest how to make this have an array, and make it contain at least one string
 Purpose: Transformation of optional string to a required field
 
-Prompt 7: How much salt is best for this hashing code?
+Prompt 6: How can I optimize multiple fetch calls inside a loop?
+Purpose: I have multiple .lab-card elements and I fetch seat availability for each one when filtering
 
+Prompt 7: How do I combine search and dropdown filters in a clean and simple way?
+Purpose: We needed to make the filters work correctly
+
+Prompt 8: How much salt is best for this hashing code?
 Purpose: Making sure we get the right balance of security and performance
 
-Prompt 8: How to allow seed.js file to read our env file? 
+Prompt 9: How to allow seed.js file to read our env file?
+Purpose: I want seed.js to read my database URI and other sensitive settings from the .env file so I don’t have to hardcode them
 
-Purpose: I want seed.js to read my database URI and other sensitive settings from the .env file so I don’t have to hardcode them in the code.
+Prompt 10: How to trigger my signalHandler in conn.js?
+Purpose: This helps the app in shutting down the connection properly
 
-Prompt 9: How to trigger my signalHandler in conn.js?
+Prompt 11: Help me setup MongoDB Atlas
+Purpose: MongoDB Atlas is the cloud-hosted version of MongoDB. It allows our group to access it simultaneously while preserving security
 
-Purpose: This helps the app in shutting down the connection properly.
+Prompt 12: Why is my bcrypt not working?
+Purpose: The installed bcrypt didn't match our Node.js version. AI suggested bcryptjs
 
-Prompt 10: Help me setup MongoDB Atlas
+Prompt 13: What is req and res
+Purpose: To understand REST API
 
-Purpose: MongoDB Atlas is the cloud-hosted version of MongoDB. It allows our group to access it simultaneously while preserving security.
-
-Prompt 11: Why is my bcrypt not working? 
-
-Purpose: The installed bcrypt didn't match our Nodejs' version. AI suggested bcryptjs.
-
-Prompt 12: What is req and res 
-
-Purpose: To understand REST API.
-
-Prompt 13: How to run on Localhost:3000
-
+Prompt 14: How to run on Localhost:3000
 Purpose: Assistance on backend development
 
-Prompt 14: How to connect mongoDB atlas to mongoDB compass 
-
+Prompt 15: How to connect MongoDB Atlas to MongoDB Compass
 Purpose: Connecting our data to cloud
 
-Prompt 15: Render error
-
+Prompt 16: Render error
 Purpose: Debugging a deployment problem
-
   
 
 ================================================================================
